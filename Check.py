@@ -1,11 +1,13 @@
 from copy import copy
 
+def check_mate(*args):
+    pass
+
 def check_check(rows, white_king, black_king) -> str:
     white = check_king(rows, white_king, 'w')
-    print(white)
+    print('W: ', white)
     black = check_king(rows, black_king, 'b')
-    print(black)
-    print('')
+    print('B: ', black)
     if white:
         return 'white'
     if black:
@@ -14,15 +16,38 @@ def check_check(rows, white_king, black_king) -> str:
         return 'none'
             
 def check_king(rows, king, c):
+        
     black = (c == 'b')
-    multi = 1
-    if black:
-        multi = -1
     
-    x = king[0] + (1 * multi)
-    y = king[1] + (1 * multi)
+    if black:
+        left = get(king[1] + 1, king[0] - 1, rows)
+        right = get(king[1] + 1, king[0] + 1, rows)
+        
+        if type(left) is not int and type(left) is not str:
+            if left.type == 'pawn' and not left.black:
+                return True
+            
+        if type(right) is not int and type(right) is not str:
+            if right.type == 'pawn' and not right.black:
+                return True
+            
+    else:
+        left = get(king[1] - 1, king[0] - 1, rows)
+        right = get(king[1] - 1, king[0] + 1, rows)
+        
+        if type(left) is not int and type(left) is not str:
+            if left.type == 'pawn' and left.black:
+                return True
+            
+        if type(right) is not int and type(right) is not str:
+            if right.type == 'pawn' and right.black:
+                return True
+    
+    x = king[0] + 1
+    y = king[1] + 1
     square = get(y, x, rows)
     while square != 'NA':
+        print(square)
         if type(square) is not int:
             if square.black != black:
                 if square.type == 'queen' or square.type == 'bishop':
@@ -30,14 +55,15 @@ def check_king(rows, king, c):
             else:
                 break
             
-        y += 1
         x += 1
+        y += 1
         square = get(y, x, rows)
         
-    x = king[0] - (1 * multi)
-    y = king[1] + 1 * multi
+    x = king[0] + 1
+    y = king[1] - 1
     square = get(y, x, rows)
     while square != 'NA':
+        print(square)
         if type(square) is not int:
             if square.black != black:
                 if square.type == 'queen' or square.type == 'bishop':
@@ -45,19 +71,18 @@ def check_king(rows, king, c):
             else:
                 break
             
-        y += 1
-        x -= 1
+        x += 1
+        y -= 1
         square = get(y, x, rows)
         
-        
-    first = True
-    x = king[0] - (1 * multi)
-    y = king[1] - (1 * multi)
+    x = king[0] - 1
+    y = king[1] - 1
     square = copy(get(y, x, rows))
     while square != 'NA':
+        print(square)
         if type(square) is not int:
             if square.black != black:
-                if square.type == 'queen' or square.type == 'bishop' or (first and square.type == 'pawn'):
+                if square.type == 'queen' or square.type == 'bishop':
                     return True
             else:
                 break
@@ -65,24 +90,22 @@ def check_king(rows, king, c):
         y -= 1
         x -= 1
         square = copy(get(y, x, rows))
-        first = False
     
-    first = True
-    x = king[0] + 1 * multi
-    y = king[1] - (1 * multi)
+    x = king[0] + 1
+    y = king[1] - 1
     square = get(y, x, rows)
     while square != 'NA':
+        print(square)
         if type(square) is not int:
             if square.black != black:
-                if square.type == 'queen' or square.type == 'bishop' or (first and square.type == 'pawn'):
+                if square.type == 'queen' or square.type == 'bishop':
                     return True
             else:
                 break
             
-        y -= 1
-        x += 1
+        x -= 1
+        y += 1
         square = get(y, x, rows)
-        first = False
         
     return False
     

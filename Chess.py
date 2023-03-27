@@ -1,6 +1,6 @@
 from tkinter import *
 from copy import copy
-from Check import check_check
+from Check import check_check, check_mate
 
 SPACE_SIZE = 120
 OA = 5
@@ -27,6 +27,8 @@ class Chess:
                                          True : PhotoImage(file = 'resources/knight-b.png')}, 
                        'bishop':        {False : PhotoImage(file = 'resources/bishop-w.png'), 
                                          True : PhotoImage(file = 'resources/bishop-b.png')}, 
+                       'queen':         {False : PhotoImage(file = 'resources/queen-w.png'), 
+                                         True : PhotoImage(file = 'resources/queen-b.png')}, 
                        
                        'move-take':         PhotoImage(file = 'resources/move-take.png'), 
                        'move-circle':       PhotoImage(file = 'resources/move-circle.png'), 
@@ -59,6 +61,7 @@ class Chess:
             
         self.window.bind('<Motion>', self.motion)
         self.window.bind('<Button-1>', self.click)
+        self.window.bind('<Up>', self.asdf)
         
         self.start_game()
         
@@ -82,6 +85,9 @@ class Chess:
         
         self.black_king = (4, 0)
         self.white_king = (4, 7)
+        
+    def asdf(self, e):
+        print(check_check(self.rows, self.white_king, self.black_king))
         
     def motion(self, event):
             self.canvas.delete('hover')
@@ -175,31 +181,15 @@ class Chess:
         if rows == '':
             rows = self.rows
         
-        a = check_check(rows, self.white_king, self.black_king)
-        print(a)
-        return (a, False)
-        self.canvas.delete('check')
-        check = False
-        for index, row in enumerate(rows):
-            for s_index, square in enumerate(row):
-                if type(square) is not int:
-                    
-                    moves = [(move[0], move[1]) for move in square.get_moves((s_index, index))]
-
-                    if self.black_king in moves:
-                        x = self.black_king[0] * SPACE_SIZE
-                        y = self.black_king[1] * SPACE_SIZE
-                        self.canvas.create_rectangle(x, y, x + 50, y + 50, fill = 'red', tag = 'check')
-                        check = True
-                        
-                    if self.white_king in moves:
-                        x = self.white_king[0] * SPACE_SIZE
-                        y = self.white_king[1] * SPACE_SIZE
-                        self.canvas.create_rectangle(x, y, x + 50, y + 50, fill = 'red', tag = 'check')
-                        check = True
+        check = check_check(rows, self.white_king, self.black_king)
         
-        mate = False
-        return(check, mate)
+        if check:
+            mate = check_mate(rows, self.white_king, 'w')
+        else:
+            mate = False
+        
+        return (check, False)
+            
         
     def draw_moves(self, moves):
         self.moves = moves
@@ -222,168 +212,11 @@ class Testpiece:
             self.selected = False
             
     def __str__(self) -> str:
-        return f'{self.type}, {self.black}'
+        return f'{self.type}'
     def __unicode__(self):
-        return f'{self.type}, {self.black}'
+        return f'{self.type}'
     def __repr__(self):
-        return f'{self.type}, {self.black}'
-        
-    '''def get_moves(self, coordinates):
-        moves = []
-        multiplier = -1
-        if self.black:
-            multiplier = 1
-            
-        current_x = coordinates[0]
-        current_y = coordinates[1]
-        
-        match self.type:
-            
-            case 'pawn':
-                if self.coordinates == coordinates:
-                    if self.get(current_y + 1 * multiplier, current_x) == 0:
-                        moves.append((current_x, current_y + 1 * multiplier))
-                        if self.get(current_y + 2 * multiplier, current_x) == 0:
-                            moves.append((current_x, current_y + 2 * multiplier))
-                else:
-                    if self.get(current_y + 1 * multiplier, current_x) == 0:
-                        moves.append((current_x, current_y + 1 * multiplier))
-                
-                if type(self.get(current_y + 1 * multiplier, current_x + 1 * multiplier)) is Piece:
-                    if self.game.rows[current_y + 1 * multiplier][current_x + 1 * multiplier].black != self.black:
-                        moves.append((current_x + 1 * multiplier, current_y + 1 * multiplier))
-                
-                if type(self.get(current_y + 1 * multiplier, current_x - 1 * multiplier)) is Piece:
-                    if self.game.rows[current_y + 1 * multiplier][current_x - 1 * multiplier].black != self.black:
-                        moves.append((current_x - 1 * multiplier, current_y + 1 * multiplier))
-                      
-            case 'knight':
-                
-                for move in ((2, 1), (1, 2), (-2, 1), (2, -1), (-2, -1), (-1, 2), (-1, -2), (1, -2)):
-                    piece = self.get(current_y + move[0], current_x + move[1])
-                    if piece != 1:
-                        if type(piece) is Piece:
-                            if piece.black != self.black:
-                                moves.append((current_x + move[1], current_y + move[0]))
-                        else:
-                            moves.append((current_x + move[1], current_y + move[0]))
-                            
-            case _:
-                if self.type == 'rook' or self.type == 'queen':
-                    x = copy(current_x) + 1
-                    
-                    while self.get(current_y, x) != 1:
-                        
-                        piece: Piece = self.get(current_y, x)
-                        if type(piece) is Piece:
-                            if piece.black != self.black:
-                                moves.append((x, current_y))
-                            break
-                        
-                        moves.append((x, current_y))
-                        x += 1
-                    
-                    x = copy(current_x) -1
-                    
-                    while self.get(current_y, x) != 1:
-                        
-                        piece: Piece = self.get(current_y, x)
-                        if type(piece) is Piece:
-                            if piece.black != self.black:
-                                moves.append((x, current_y))
-                            break
-                        
-                        moves.append((x, current_y))
-                        x -= 1
-                        
-                    y = copy(current_y) + 1
-                    
-                    while self.get(y, current_x) != 1:
-                        
-                        piece: Piece = self.get(y, current_x)
-                        if type(piece) is Piece:
-                            if piece.black != self.black:
-                                moves.append((current_x, y))
-                            break
-                        
-                        moves.append((current_x, y))
-                        y += 1
-                    
-                    y = copy(current_y) - 1
-                    
-                    while self.get(y, current_x) != 1:
-                        
-                        piece: Piece = self.get(y, current_x)
-                        if type(piece) is Piece:
-                            if piece.black != self.black:
-                                moves.append((current_x, y))
-                            break
-                        
-                        moves.append((current_x, y))
-                        y -= 1
-                if self.type == 'bishop' or self.type == 'queen':
-                    
-                    x = copy(current_x) + 1
-                    y = copy(current_y) + 1
-                    
-                    while self.get(y, x) != 1:
-                        
-                        piece: Piece = self.get(y, x)
-                        if type(piece) is Piece:
-                            if piece.black != self.black:
-                                moves.append((x, y))
-                            break
-                        
-                        moves.append((x, y))
-                        x += 1
-                        y += 1
-                    
-                    x = copy(current_x) + 1
-                    y = copy(current_y) - 1
-                    
-                    while self.get(y, x) != 1:
-                        
-                        piece: Piece = self.get(y, x)
-                        if type(piece) is Piece:
-                            if piece.black != self.black:
-                                moves.append((x, y))
-                            break
-                        
-                        moves.append((x, y))
-                        x += 1
-                        y -= 1
-                        
-                    x = copy(current_x) - 1
-                    y = copy(current_y) + 1
-                    
-                    while self.get(y, x) != 1:
-                        
-                        piece: Piece = self.get(y, x)
-                        if type(piece) is Piece:
-                            if piece.black != self.black:
-                                moves.append((x, y))
-                            break
-                        
-                        moves.append((x, y))
-                        x -= 1
-                        y += 1
-                    
-                    x = copy(current_x) - 1
-                    y = copy(current_y) - 1
-                    
-                    while self.get(y, x) != 1:
-                        
-                        piece: Piece = self.get(y, x)
-                        if type(piece) is Piece:
-                            if piece.black != self.black:
-                                moves.append((x, y))
-                            break
-                        
-                        moves.append((x, y))
-                        x -= 1
-                        y -= 1
-            
-        return moves'''
+        return f'{self.type}'
     
     def get(self, y, x):
         if y not in range(0, 8):
@@ -413,7 +246,7 @@ class Piece:
         
         match self.type:
             
-            case 'pawn' | 'rook' | 'knight' | 'bishop':
+            case 'pawn' | 'rook' | 'knight' | 'bishop' | 'queen':
                 self.obj = self.game.canvas.create_image(x, y, image = self.game.images[self.type][self.black], anchor = NW, tag = 'piece')
                 
             case _:
@@ -422,7 +255,7 @@ class Piece:
     
     def click(self, coords):
         self.selected = True
-        if self.type != 'pawn' and self.type != 'rook' and self.type != 'knight' and self.type != 'bishop':
+        if self.type == 'king':
             self.game.canvas.itemconfigure(self.obj, fill = 'pink')
         else:
             x = coords[0] * SPACE_SIZE
@@ -433,7 +266,7 @@ class Piece:
         
     def unclick(self):
         self.selected = False
-        if self.type == 'pawn' or self.type == 'rook' or self.type == 'knight' or self.type == 'bishop':
+        if self.type != 'king':
             self.game.canvas.delete('highlight')
         else:
             self.game.canvas.itemconfigure(self.obj, fill = self.color)
@@ -611,7 +444,8 @@ class Piece:
                 string = 'black'
             else:
                 string = 'white'
-            if check_check(test_rows, self.game.white_king, self.game.black_king) != string:
+            test = check_check(test_rows, self.game.white_king, self.game.black_king)
+            if test != string:
                 legal_moves.append(move)
             
         return legal_moves
@@ -625,12 +459,12 @@ class Piece:
             return self.game.rows[y][x]
         
     def __str__(self) -> str:
-        return f'{self.type}, {self.black}'
+        return f'{self.type}'
     
     def __unicode__(self):
-        return f'{self.type}, {self.black}'
+        return f'{self.type}'
     def __repr__(self):
-        return f'{self.type}, {self.black}'
+        return f'{self.type}'
     
     
 game = Chess()
