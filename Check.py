@@ -5,9 +5,7 @@ def check_mate(*args):
 
 def check_check(rows, white_king, black_king) -> str:
     white = check_king(rows, white_king, 'w')
-    print('W: ', white)
     black = check_king(rows, black_king, 'b')
-    print('B: ', black)
     if white:
         return 'white'
     if black:
@@ -47,7 +45,6 @@ def check_king(rows, king, c):
     y = king[1] + 1
     square = get(y, x, rows)
     while square != 'NA':
-        print(square)
         if type(square) is not int:
             if square.black != black:
                 if square.type == 'queen' or square.type == 'bishop':
@@ -63,7 +60,6 @@ def check_king(rows, king, c):
     y = king[1] - 1
     square = get(y, x, rows)
     while square != 'NA':
-        print(square)
         if type(square) is not int:
             if square.black != black:
                 if square.type == 'queen' or square.type == 'bishop':
@@ -79,7 +75,6 @@ def check_king(rows, king, c):
     y = king[1] - 1
     square = copy(get(y, x, rows))
     while square != 'NA':
-        print(square)
         if type(square) is not int:
             if square.black != black:
                 if square.type == 'queen' or square.type == 'bishop':
@@ -95,7 +90,6 @@ def check_king(rows, king, c):
     y = king[1] - 1
     square = get(y, x, rows)
     while square != 'NA':
-        print(square)
         if type(square) is not int:
             if square.black != black:
                 if square.type == 'queen' or square.type == 'bishop':
