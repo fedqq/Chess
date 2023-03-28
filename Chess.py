@@ -18,7 +18,9 @@ class Chess:
         
         self.images = {'pawn':      {False : PhotoImage(file = 'resources/pawn-w.png'), 
                                      True : PhotoImage(file = 'resources/pawn-b.png')}, 
-                       'rook':      {False : PhotoImage(file = 'resources/rook-w.png'), 
+                       'lrook':      {False : PhotoImage(file = 'resources/rook-w.png'), 
+                                     True : PhotoImage(file = 'resources/rook-b.png')}, 
+                       'rrook':      {False : PhotoImage(file = 'resources/rook-w.png'), 
                                      True : PhotoImage(file = 'resources/rook-b.png')}, 
                        'knight':    {False : PhotoImage(file = 'resources/knight-w.png'), 
                                      True : PhotoImage(file = 'resources/knight-b.png')}, 
@@ -58,6 +60,10 @@ class Chess:
         self.moves = []
         self.turn = 'white'   
         self.playing = False
+        self.king_moved_w = False
+        self.king_moved_b = False
+        self.rooks_moved_w = (False, False)
+        self.rooks_moved_b = (False, False)
             
         self.window.bind('<Motion>', self.motion)
         self.window.bind('<Button-1>', self.click)
@@ -73,14 +79,14 @@ class Chess:
         self.moves = []
         
         self.rows = [
-                     [Piece((1, 1), self, True, 'rook'), Piece((2, 1), self, True, 'knight'), Piece((3, 1), self, True, 'bishop'), Piece((4, 1), self, True, 'queen'), Piece((5, 1), self, True, 'king'), Piece((6, 1), self, True, 'bishop'), Piece((7, 1), self, True, 'knight'), Piece((8, 1), self, True, 'rook')], 
+                     [Piece((1, 1), self, True, 'lrook'), Piece((2, 1), self, True, 'knight'), Piece((3, 1), self, True, 'bishop'), Piece((4, 1), self, True, 'queen'), Piece((5, 1), self, True, 'king'), Piece((6, 1), self, True, 'bishop'), Piece((7, 1), self, True, 'knight'), Piece((8, 1), self, True, 'rrook')], 
                      [Piece((number + 1, 2), self, True) for number in range(8)], 
                      [0 for _ in range(0, 8)],
                      [0 for _ in range(0, 8)], 
                      [0 for _ in range(0, 8)], 
                      [0 for _ in range(0, 8)], 
                      [Piece((number + 1, 7), self, False) for number in range(8)],
-                     [Piece((1, 8), self, False, 'rook'), Piece((2, 8), self, False, 'knight'), Piece((3, 8), self, False, 'bishop'), Piece((4, 8), self, False, 'queen'), Piece((5, 8), self, False, 'king'), Piece((6, 8), self, False, 'bishop'), Piece((7, 8), self, False, 'knight'), Piece((8, 8), self, False, 'rook')], 
+                     [Piece((1, 8), self, False, 'lrook'), Piece((2, 8), self, False, 'knight'), Piece((3, 8), self, False, 'bishop'), Piece((4, 8), self, False, 'queen'), Piece((5, 8), self, False, 'king'), Piece((6, 8), self, False, 'bishop'), Piece((7, 8), self, False, 'knight'), Piece((8, 8), self, False, 'rrook')], 
                     ]
         
         self.black_king = (4, 0)
@@ -135,9 +141,32 @@ class Chess:
                     
                 if selected_square.type == 'king':
                     if selected_square.black:
+                        self.king_moved_b = True
                         self.black_king = click_position
                     else:
+                        self.king_moved_w = True
                         self.white_king = click_position
+                    
+                    if click_position[0] - self.selected_square[0] == 2:
+                        self.canvas.move(self.rows[-1][-1].obj, SPACE_SIZE * -2, 0)
+                        self.rows[7][5] = copy(self.rows[7][-1])
+                        self.rows[7][-1] = 0
+                    elif click_position[0] - self.selected_square[0] == -2:
+                        self.canvas.move(self.rows[-1][0].obj, SPACE_SIZE * 3, 0)
+                        self.rows[7][3] = copy(self.rows[7][0])
+                        self.rows[7][0] = 0
+                        
+                if 'rook' in selected_square.type:
+                    if selected_square.black:
+                        if selected_square.type == 'lrook':
+                            self.rooks_moved_b = (True, self.rooks_moved_b[1])
+                        else:
+                            self.rooks_moved_b = (self.rooks_moved_b[0], True)
+                    else:
+                        if selected_square.type == 'lrook':
+                            self.rooks_moved_w = (True, self.rooks_moved_w[1])
+                        else:
+                            self.rooks_moved_w = (self.rooks_moved_w[0], True)
                 
                 self.rows[click_position[1]][click_position[0]] = copy(selected_square)
                 self.rows[self.selected_square[1]][self.selected_square[0]] = 0
@@ -145,14 +174,14 @@ class Chess:
                 
                 self.canvas.moveto(square_sprite, y = self.y * SPACE_SIZE, x = self.x * SPACE_SIZE)
                 
-                self.rows[click_position[1]][click_position[0]].unclick()
+                self.canvas.delete('highlight')
                 self.moves = []
                 self.any_selected = False
                 self.selected_square = ()
             else:
                 if click_square == selected_square:
                     self.canvas.delete('moves')
-                    selected_square.unclick() 
+                    self.canvas.delete('highlight')
                     self.moves = []
                     self.any_selected = False
                     self.selected_square = ()
@@ -162,7 +191,7 @@ class Chess:
                 self.moves = []
                 self.any_selected = False
                 self.selected_square = ()
-                selected_square.unclick()
+                self.canvas.delete('highlight')
                 black = (self.turn == 'black')
                 if type(click_square) is Piece:
                     if click_square.black == black or (1 == 1):
@@ -250,9 +279,6 @@ class Piece:
         self.game.canvas.create_image(x, y, image = self.game.images['highlight'], anchor = NW, tag = 'highlight')
         self.game.canvas.tag_raise('piece')
         
-    def unclick(self):
-        self.game.canvas.delete('highlight')
-        
     def get_moves(self, coordinates):
         moves = []
         multiplier = -1
@@ -292,6 +318,14 @@ class Piece:
                 check(current_x + 1, current_y)
                 check(current_x - 1, current_y)
                 check(current_x, current_y - 1)
+                
+                if not self.game.king_moved_w:
+                    if not self.game.rooks_moved_w[0]:
+                        if self.game.rows[7][1] == 0 and self.game.rows[7][2] == 0 and self.game.rows[7][3] == 0:
+                            moves.append((current_x - 2, current_y))
+                    if not self.game.rooks_moved_w[0]:
+                        if self.game.rows[7][5] == 0 and self.game.rows[7][6] == 0:
+                            moves.append((current_x + 2, current_y))
             
             case 'pawn':
                 if self.coordinates == coordinates:
@@ -323,7 +357,7 @@ class Piece:
                             moves.append((current_x + move[1], current_y + move[0]))
                             
             case _:
-                if self.type == 'rook' or self.type == 'queen':
+                if self.type == 'rrook' or self.type == 'queen' or self.type == 'lrook':
                             
                     check_moves(1, 0)
                     check_moves(-1, 0)
@@ -374,7 +408,7 @@ class Piece:
                 test = check_check(test_rows, white_king, black_king)
                 
             else:
-                test = test = check_check(test_rows, self.game.white_king, self.game.black_king)
+                test = check_check(test_rows, self.game.white_king, self.game.black_king)
                 
             if test != string:
                 legal_moves.append(move)
