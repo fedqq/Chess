@@ -60,27 +60,20 @@ def check_king(rows, king, c):
             y += y_inc
             square = get(y, x, rows)
         
-    tests = []
-    if check_moves(1, -1, ('queen', 'bishop')):
-        return True
-    if check_moves(-1, 1, ('queen', 'bishop')):
-        return True
-    if check_moves(1, 1, ('queen', 'bishop')):
-        return True
-    if check_moves(-1, -1, ('queen', 'bishop')):
-        return True
+    qb = ('queen', 'bishop')
+    qr = ('queen, rrook, lrook')
+    checks = [(1, -1, qb), (-1, 1, qb), (1, 1, qb), (-1, -1, qb), (-1, 0, qr), (1, 0, qr), (0, 1, qr), (0, -1, qr)]
+    for check in checks:
+        if check_moves(check[0], check[1], check[2]):
+            return True
     
-    if check_moves(-1, 0, ('queen, rook')):
-        return True
-    if check_moves(1, 0, ('queen, rook')):
-        return True
-    if check_moves(0, 1, ('queen, rook')):
-        return True
-    if check_moves(0, -1, ('queen, rook')):
-        return True
-    
-    if True in tests:
-        return True
+    for move in ((2, 1), (1, 2), (-2, 1), (2, -1), (-2, -1), (-1, 2), (-1, -2), (1, -2)):
+        absolute_move = (move[0] + king[0], move[1] + king[1])
+        square = get(absolute_move[1], absolute_move[0], rows)
+        if type(square) is not int and square != 'NA':
+            if square.type == 'knight':
+                if square.black != black:
+                    return True
         
     return False
     
