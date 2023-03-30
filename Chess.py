@@ -123,6 +123,8 @@ class Chess:
                 self.y = 7
             elif self.y < 0:
                 self.y = 0
+                
+            
             
             if len(self.moves) != 0:
                 full_passant = self.en_passants_b + self.en_passants_w
@@ -287,28 +289,23 @@ class Chess:
             mate = check_mate(rows, self.white_king, 'w')
         else:
             mate = False
-        
-        if check == 'white':
-            x = self.white_king[0] * SPACE_SIZE
-            y = self.white_king[1] * SPACE_SIZE
-            self.canvas.create_image(x, y, image = self.images['check'], tag = 'check', anchor = NW)
             
-        elif check == 'black':
-            x = self.black_king[0] * SPACE_SIZE
-            y = self.black_king[1] * SPACE_SIZE
-            self.canvas.create_image(x, y, image = self.images['check'], tag = 'check', anchor = NW)
+        if check == 'white':
+            king = self.white_king
+        else:
+            king = self.black_king
+            
+        self.canvas.create_image(proportion(king), image = self.images['check'], tag = 'check', anchor = NW)
         
         return (check, False)
             
     def draw_moves(self, moves):
         self.moves = moves
         for move in moves:
-            x = move[0] * SPACE_SIZE
-            y = move[1] * SPACE_SIZE
             string = 'move-circle'
             if type(self.rows[move[1]][move[0]]) is Piece:
                 string = 'move-take'
-            self.canvas.create_image(x, y, image = self.images[string], anchor = NW, tag = 'moves')
+            self.canvas.create_image(proportion(move), image = self.images[string], anchor = NW, tag = 'moves')
             self.canvas.tag_raise('piece')
             
 class Testpiece:
@@ -336,15 +333,10 @@ class Piece:
         
         self.coordinates = (coordinates[0] - 1, coordinates[1] - 1)
         
-        x = coordinates[0] * SPACE_SIZE - SPACE_SIZE
-        y = coordinates[1] * SPACE_SIZE - SPACE_SIZE   
-        
-        self.sprite = self.game.canvas.create_image(x, y, image = self.game.images[self.type][self.black], anchor = NW, tag = 'piece')
+        self.sprite = self.game.canvas.create_image(proportion(self.coordinates), image = self.game.images[self.type][self.black], anchor = NW, tag = 'piece')
             
-    def select(self, coords):
-        x = coords[0] * SPACE_SIZE
-        y = coords[1] * SPACE_SIZE
-        self.game.canvas.create_image(x, y, image = self.game.images['highlight'], anchor = NW, tag = 'highlight')
+    def select(self, position):
+        self.game.canvas.create_image(proportion(position), image = self.game.images['highlight'], anchor = NW, tag = 'highlight')
         self.game.canvas.tag_raise('piece')
         
     def get_moves(self, coordinates):
@@ -519,5 +511,8 @@ class Piece:
         return f'{self.type}'
     def __repr__(self):
         return f'{self.type}'
+    
+def proportion(tuple):
+    return [a * SPACE_SIZE for a in tuple]
     
 Chess()
