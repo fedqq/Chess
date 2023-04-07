@@ -1,102 +1,39 @@
-class Testpiece:
-    def __init__(self, base):
-        if type(base) is not int:
-            
-            self.type = base.type
-            self.black = base.black
-            self.coordinates = (base.coordinates[0] - 1, base.coordinates[1] - 1)
-            self.selected = False
-        else:
-            self.type = 'integer'
-            self.black = 'base.black'
-            self.coordinates = 'c'
-            self.selected = 'stupid'
-
-def check_mate(rows, king, color):
-    black = (color == 'black')
-    if black or not black:
-        for row in rows:
-            for square in row:
-                if type(square) is not int:
-                    if square.black == black:
-                        for move in square.get_moves((row.index(square), rows.index(row))):
-                            test_rows = [[Testpiece(square) for square in row] for row in rows]
-                            current_x = row.index(square)
-                            current_y = rows.index(row)
-                            
-                            test_rows[move[1]][move[0]] = test_rows[current_y][current_x]
-                            test_rows[current_y][current_x] = 0
-                            
-                            kingf = (0, 0)
-                            for row2 in rows:
-                                for square2 in row2:
-                                    if type(square2) is not int:
-                                        if square2.type == 'king' and square2.black == black:
-                                            kingf = (row2.index(square2), rows.index(row2))
-                            
-                            if square.type == 'king':
-                                kingf = (move[1], move[1])
-                            if not kingf == (0, 0): 
-                                if black:  
-                                    if check_king(test_rows, kingf, 'b') == False:
-                                        print((current_x, current_y), ' to ', move)
-                                        return False
-                                else:
-                                    if check_king(test_rows, kingf, 'w') == False:
-                                        print((current_x, current_y), ' to ', move)
-                                        return False
-    return True
-
-def check_check(rows, white_king, black_king, test = 'all') -> str:
-    ret = [False, False]
-    if test != 'black':
-        white = check_king(rows, white_king, 'w')
-        if white:
-            ret[0] = True
-       
-    if test != 'white': 
-        black = check_king(rows, black_king, 'b')
-        if black:
-            ret[1] = True
-        
-    return ret
-            
-def check_king(rows, king, c):
-        
-    black = (c == 'b')
+def check_move(original_rows, start_move = 0, end_move = 0, test = 'all'):
+    rows = [[TestPiece(square) for square in row] for row in original_rows]
+    if not start_move == end_move:
+        rows[end_move[1]][end_move[0]] = rows[start_move[1]][start_move[0]] 
+        rows[start_move[1]][start_move[0]] = 0
     
-    if black:
-        left = get(king[1] + 1, king[0] - 1, rows)
-        right = get(king[1] + 1, king[0] + 1, rows)
-        
-        if type(left) is not int and type(left) is not str and left.type != 'int':
-            if left.type == 'pawn' and not left.black:
-                return True
-            
-        if type(right) is not int and type(right) is not str and right.type != 'int':
-            if right.type == 'pawn' and not right.black:
-                return True
-            
-    else:
-        left = get(king[1] - 1, king[0] - 1, rows)
-        right = get(king[1] - 1, king[0] + 1, rows)
-        
-        if type(left) is not int and type(left) is not str and left.type != 'int':
-            if left.type == 'pawn' and left.black:
-                return True
-            
-        if type(right) is not int and type(right) is not str and right.type != 'int':
-            if right.type == 'pawn' and right.black:
-                return True
-            
+    ret = [False, False]
+    
+    if test != 'black':
+        for row_index, row in enumerate(rows):
+            for square_index, square in enumerate(row):
+                if type(square) is not int and square.type != 'int':
+                    if square.type == 'king' and not square.black:
+                        ret[0] = check_king(rows, (square_index, row_index), black = False)
+                        break
+                        
+    if test != 'white':
+        for row_index, row in enumerate(rows):
+            for square_index, square in enumerate(row):
+                if type(square) is not int and square.type != 'int':
+                    if square.type == 'king' and square.black:
+                        ret[1] = check_king(rows, (square_index, row_index), black = True)
+                        break
+         
+    return ret
+
+def check_king(rows, king, black):
+    
     def check_moves(x_inc, y_inc, types):
         
         x = king[0] + x_inc
         y = king[1] + y_inc
-        square = get(y, x, rows)
+        square = get(rows, y, x)
         while square != 'NA':
             
-            if type(square) is not int:
+            if type(square) is not int and square.type != 'int':
                 if square.black != black:
                     if square.type in types:
                         return True
@@ -107,18 +44,42 @@ def check_king(rows, king, c):
                 
             x += x_inc
             y += y_inc
-            square = get(y, x, rows)
-        
+            square = get(rows, y, x)
+    
     qb = ('queen', 'bishop')
-    qr = ('queen', 'rrook', 'lrook')
+    qr = ('queen', 'rrook', 'lrook', 'rook')
     checks = [(1, -1, qb), (-1, 1, qb), (1, 1, qb), (-1, -1, qb), (-1, 0, qr), (1, 0, qr), (0, 1, qr), (0, -1, qr)]
     for check in checks:
         if check_moves(check[0], check[1], check[2]):
             return True
     
+    if black:
+        left = get(rows, king[1] + 1, king[0] - 1)
+        right = get(rows, king[1] + 1, king[0] + 1)
+        
+        if type(left) is not int and type(left) is not str and left.type != 'int':
+            if left.type == 'pawn' and not left.black:
+                return True
+            
+        if type(right) is not int and type(right) is not str and right.type != 'int':
+            if right.type == 'pawn' and not right.black:
+                return True
+            
+    else:
+        left = get(rows, king[1] - 1, king[0] - 1)
+        right = get(rows, king[1] - 1, king[0] + 1)
+        
+        if type(left) is not int and type(left) is not str and left.type != 'int':
+            if left.type == 'pawn' and left.black:
+                return True
+            
+        if type(right) is not int and type(right) is not str and right.type != 'int':
+            if right.type == 'pawn' and right.black:
+                return True    
+    
     for move in ((2, 1), (1, 2), (-2, 1), (2, -1), (-2, -1), (-1, 2), (-1, -2), (1, -2)):
         absolute_move = (move[0] + king[0], move[1] + king[1])
-        square = get(absolute_move[1], absolute_move[0], rows)
+        square = get(rows, absolute_move[1], absolute_move[0])
         if type(square) is not int and square != 'NA':
             if square.type == 'knight':
                 if square.black != black:
@@ -126,8 +87,26 @@ def check_king(rows, king, c):
         
     return False
     
-def get(y, x, rows):
-    if y not in range(0, 8) or x not in range(0, 8):
-        return 'NA'
+def get(rows, yp = 0, xp = 0, tuple = 'empty'):
+    if tuple != 'empty':
+        x = tuple[0]
+        y = tuple[1]
     else:
+        x = xp
+        y = yp
+        
+    if x in range(0, 8) and y in range(0, 8):
         return rows[y][x]
+    
+    return 'NA'
+    
+class TestPiece:
+    def __init__(self, base):
+        if type(base) is not int:
+            
+            self.type = base.type
+            self.black = base.black
+            self.position = (base.start_position[0], base.start_position[1])
+            self.selected = False 
+        else:
+            self.type = 'int'
