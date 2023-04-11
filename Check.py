@@ -1,4 +1,4 @@
-def check_move(original_rows, start_move = 0, end_move = 0, test = 'all'):
+def check_move(original_rows, start_move = 0, end_move = 0, test = 'all', flipped = False):
     rows = [[TestPiece(square) for square in row] for row in original_rows]
     if not start_move == end_move:
         rows[end_move[1]][end_move[0]] = rows[start_move[1]][start_move[0]] 
@@ -11,7 +11,7 @@ def check_move(original_rows, start_move = 0, end_move = 0, test = 'all'):
             for square_index, square in enumerate(row):
                 if type(square) is not int and square.type != 'int':
                     if square.type == 'king' and not square.black:
-                        ret[0] = check_king(rows, (square_index, row_index), black = False)
+                        ret[0] = check_king(rows, (square_index, row_index), black = False, flipped = flipped)
                         break
                         
     if test != 'white':
@@ -19,12 +19,12 @@ def check_move(original_rows, start_move = 0, end_move = 0, test = 'all'):
             for square_index, square in enumerate(row):
                 if type(square) is not int and square.type != 'int':
                     if square.type == 'king' and square.black:
-                        ret[1] = check_king(rows, (square_index, row_index), black = True)
+                        ret[1] = check_king(rows, (square_index, row_index), black = True, flipped  = flipped)
                         break
          
     return ret
 
-def check_king(rows, king, black):
+def check_king(rows, king, black, flipped):
     
     def check_moves(x_inc, y_inc, types):
         
@@ -53,28 +53,33 @@ def check_king(rows, king, black):
         if check_moves(check[0], check[1], check[2]):
             return True
     
-    if black:
-        left = get(rows, king[1] + 1, king[0] - 1)
-        right = get(rows, king[1] + 1, king[0] + 1)
+    a = black
+    multi = 1
+    if flipped:
+        a = not a
+        multi = 1
+    if a:
+        left = get(rows, king[1] + (1*multi), king[0] - 1)
+        right = get(rows, king[1] + (1*multi), king[0] + 1)
         
         if type(left) is not int and type(left) is not str and left.type != 'int':
-            if left.type == 'pawn' and not left.black:
+            if left.type == 'pawn' and left.black != black:
                 return True
             
         if type(right) is not int and type(right) is not str and right.type != 'int':
-            if right.type == 'pawn' and not right.black:
+            if right.type == 'pawn' and right.black != black:
                 return True
             
     else:
-        left = get(rows, king[1] - 1, king[0] - 1)
-        right = get(rows, king[1] - 1, king[0] + 1)
+        left = get(rows, king[1] - (1*multi), king[0] - 1)
+        right = get(rows, king[1] - (1*multi), king[0] + 1)
         
         if type(left) is not int and type(left) is not str and left.type != 'int':
-            if left.type == 'pawn' and left.black:
+            if left.type == 'pawn' and left.black != black:
                 return True
             
         if type(right) is not int and type(right) is not str and right.type != 'int':
-            if right.type == 'pawn' and right.black:
+            if right.type == 'pawn' and right.black != black:
                 return True    
     
     for move in ((2, 1), (1, 2), (-2, 1), (2, -1), (-2, -1), (-1, 2), (-1, -2), (1, -2)):
