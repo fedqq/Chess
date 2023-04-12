@@ -54,6 +54,7 @@ class Chess:
         self.playing            = False
         self.paused             = False
         self.flipped            = False
+        self.promo_on           = False
         self.flip_on            = True
         self.game_started       = False
         self.out                = True
@@ -113,6 +114,8 @@ class Chess:
         self.increment_label.pack(side = LEFT)
         self.increment_input.pack(side = LEFT)
         
+        self.update = self.canvas.update
+        
         self.window.mainloop()
         
     def create_image(self, position, image, tag = 'pro'):
@@ -121,6 +124,7 @@ class Chess:
             return ret
         
     def show_promote_menu(self, position, black = False):
+        self.promo_on = True
         pos = (2, 3.5)
         self.create_image(pos, self.images['promote'])
         
@@ -142,6 +146,9 @@ class Chess:
             self.canvas.delete(self.get(tuple = position).sprite)
             self.assign(position)
             self.assign(position, Piece(position, self, black, type))
+            self.promo_on = False
+            if self.flip_on:
+                self.flip(True)
         
     def check_text(self, one):
         if one:
@@ -164,7 +171,7 @@ class Chess:
             self.base = int(self.input_strings[0][1])
             self.increment = int(self.input_strings[1][1])
         
-        self.canvas.delete('piece', 'check', 'highlight', 'hover')
+        self.canvas.delete('piece', 'check', 'highlight', 'hover', 'last')
         
         self.timer                  = [self.base, self.base]
         self.black_king             = (4, 0)
@@ -186,7 +193,7 @@ class Chess:
                      [Piece((number, 7), self, False, pieces[number]) for number in range(8)]
                     ]
         
-        self.game_positions[self.get_code()] = 1
+        self.game_positions = {self.get_code(): 1}
         
         
     def restart(self, *args):
@@ -197,10 +204,13 @@ class Chess:
         self.create_image((0, 0), self.images['end-menu'], 'title')
         if winner != 'Draw':
             text = f'{winner} Won\nBy {method}'
+            symbol  ='♚' if winner == 'black' else '♔'
         else:
             text = f'{winner} by {method}'
+            symbol = '♔-♚'
         
-        self.canvas.create_text(proportion(4, 4), text = text, font = ('times new roman', 54), fill = 'white', tag = 'title', justify = CENTER)
+        self.canvas.create_text(proportion(4, 3), text = text, font = ('times new roman', 54), fill = 'white', tag = 'title', justify = CENTER)
+        self.canvas.create_text(proportion(4, 5), text = symbol, font = ('calibri', 100), fill = 'white', tag = 'title', justify = CENTER)
         
     def motion(self, event):
             self.canvas.delete('hover')
@@ -254,16 +264,14 @@ class Chess:
         
         canvas = self.canvas  
         
-        canvas.delete('moves', 'check', 'hover', 'highlight')
+        canvas.delete('moves', 'hover', 'highlight')
         
         if not self.timer_started:
             self.timer_started = True
             self.tick_timer()
          
         mouse_position = self.mouse_position
-        if self.flipped:
-            self.selected_position = [self.selected_position[0], self.selected_position[1]]
-        select_position = self.selected_position
+        select_position = self.selected_position 
         
         assign = self.assign
         get = self.get
@@ -281,6 +289,12 @@ class Chess:
                 if type(click_square) is Piece:
                     self.move_counter = 0
                     canvas.delete(click_square.sprite)
+                    
+                def num(n):
+                            if self.flipped:
+                                return 7 - n
+                            else:
+                                return n
                 
                 match selected_square.type:
                     case 'king':
@@ -292,21 +306,25 @@ class Chess:
                             self.white_king = mouse_position
                         
                         if selected_square.black:
-                            row = 0
+                            row = num(0)
                         else:
-                            row = 7
+                            row = num(7)
                             
-                        if self.mouse_position[0] - self.selected_position[0] == 2:
+                        multi = 1
+                        if self.flipped:
+                            multi = -1
+                        
+                        if mouse_position[0] - select_position[0] == (2 * multi):
                             
-                            canvas.move(get(row, 7).sprite, SPACE_SIZE * -2, 0)
-                            assign((5, row), get(row, 7))
-                            assign((7, row))
+                            canvas.move(get(row, num(7)).sprite, SPACE_SIZE * (-2 * multi), 0)
+                            assign((num(5), row), get(row, num(7)))
+                            assign((num(7), row))
                             
-                        elif self.mouse_position[0] - self.selected_position[0] == -2:
+                        elif mouse_position[0] - select_position[0] == (-2 * multi):
                             
-                            canvas.move(get(row, 0).sprite, SPACE_SIZE * 3, 0)
-                            assign((3, row), get(row, 0))
-                            assign((0, row))
+                            canvas.move(get(row, num(0)).sprite, SPACE_SIZE * (3 * multi), 0)
+                            assign((num(3), row), get(row, num(0)))
+                            assign((num(0), row))
                                 
                     case 'pawn':
                         
@@ -319,7 +337,7 @@ class Chess:
                             else:
                                 self.en_passants_w.append(object)
                                 
-                        if mouse_position[1] == (7 if selected_square.black else 0):
+                        if mouse_position[1] == (num(7) if selected_square.black else num(0)):
                             self.show_promote_menu(mouse_position, selected_square.black)
                                 
                     case _:
@@ -348,31 +366,36 @@ class Chess:
                 canvas.delete('last')
                 
                 canvas.moveto(square_sprite, y = mouse_position[1] * SPACE_SIZE, x = mouse_position[0] * SPACE_SIZE)
+                self.last_move = (select_position, mouse_position)
                 
-                self.check_draw()
+                if not self.flipped:
+                    self.test_draw()
                 
                 if self.flip_on:
-                    self.canvas.update()
+                    self.update()
                     self.pause_timer()
-                    self.window.after(500, self.flip())
-                    
-                    self.create_image([7 - select_position[0], 7 - select_position[1]], self.images['last-move'], 'last')
-                    self.create_image([7 - mouse_position[0], 7 - mouse_position[1]], self.images['last-move'], 'last')
-                
+                    self.can_click = False
+                    if self.flipped:
+                        self.window.after(500, self.flip, True)
+                    else:
+                        self.window.after(500, self.flip)
+                        
                 else:
-                    self.create_image(select_position, self.images['last-move'], 'last')
-                    self.create_image(mouse_position, self.images['last-move'], 'last')
+                    self.create_image(self.last_move[0], self.images['last-move'], 'last')
+                    self.create_image(self.last_move[1], self.images['last-move'], 'last')
+                    
+                self.update()
                 
                 self.moves = []
                 self.any_selected = False
                 select_position = ()
+                self.test_check()
                 
             else:
                 if mouse_position == select_position:
                     self.moves = []
                     self.any_selected = False
                     select_position = ()
-                    self.check_check()
                     return
                 
                 self.moves = []
@@ -399,8 +422,6 @@ class Chess:
                     self.selected_position = mouse_position
                     self.any_selected = True
                     self.draw_moves(click_square.get_moves(mouse_position))
-                    
-        self.check_check()
         
     def assign(self, place, element = 0):
         self.rows[place[1]][place[0]] = element
@@ -454,7 +475,7 @@ class Chess:
         self.label.configure(text = f'White: {white}\tBlack: {black}\t')
         self.window.after(1000, self.tick_timer)
         
-    def check_draw(self):
+    def test_draw(self):
         
         self.move_counter += 1
         code = self.get_code()
@@ -470,7 +491,7 @@ class Chess:
         if self.move_counter == 100:
             self.lose_game(method = '\nFifty Move Rule')
         
-    def check_check(self) -> tuple:
+    def test_check(self) -> tuple:
         self.canvas.delete('check')
         rows = self.rows
         
@@ -523,24 +544,44 @@ class Chess:
                 string = 'move-take'
             self.create_image(move[:2], self.images[string], 'moves')
             
-    def flip(self):
-        self.paused = False
-        self.flipped = not self.flipped
-        self.rows.reverse()
-        for row in self.rows:
-            row.reverse()
+    def flip(self, check_draw = False):
+        
+        if self.promo_on:
+            return
+        
         for row in self.rows:
             for square in row:
                 if not type(square) is int:
-                    self.canvas.moveto(square.sprite, x = (row.index(square)) * SPACE_SIZE, y = (self.rows.index(row)) * SPACE_SIZE)
+                    self.canvas.moveto(square.sprite, x = (7 - row.index(square)) * SPACE_SIZE, y = (7-self.rows.index(row)) * SPACE_SIZE)
+                    self.canvas.itemconfigure(square.sprite, state = 'normal')
+                    for a in range(0,100000):
+                        pass
+                    self.canvas.update()
+                    
+        self.paused = False
+        self.flipped = not self.flipped
+        self.rows = [row[::-1] for row in self.rows][::-1]
             
-        self.en_passants_w = [(7 - p[0], 7 - p[1], 7 - p[2], 7 - p[3]) for p in self.en_passants_w]
-        self.en_passants_b = [(7 - p[0], 7 - p[1], 7 - p[2], 7 - p[3]) for p in self.en_passants_b]
+        self.en_passants_w = [[7 - elem for elem in p] for p in self.en_passants_w]
+        self.en_passants_b = [[7 - elem for elem in p] for p in self.en_passants_b]
          
-        a = self.white_king
-        self.white_king = self.black_king
-        self.black_king = a
-        self.check_check()
+        self.white_king = [7 - elem for elem in self.white_king]
+        self.black_king = [7 - elem for elem in self.black_king]
+        
+        self.last_move = [[7 - elem for elem in p] for p in self.last_move]
+        
+        self.create_image(self.last_move[0], self.images['last-move'], 'last')
+        self.create_image(self.last_move[1], self.images['last-move'], 'last')
+        
+        self.can_click = True
+        
+        self.update()
+        
+        self.test_check()
+        self.update()
+        
+        if check_draw:
+            self.test_draw()
     
 class Piece:
     def __init__(self, position = '', game: Chess = None, black = False, piece_type = 'pawn'):
@@ -624,26 +665,44 @@ class Piece:
                 
                 if self.black:
                     moved = game.black_moved
-                    row = 0
+                    if self.game.flipped:
+                        row = 7
+                        multi = -1
+                    else:
+                        row = 0
+                        multi = 1
                 else:
+                    
                     moved = game.white_moved
-                    row = 7
+                    if self.game.flipped:
+                        row = 0
+                        multi = -1
+                    else:
+                        row = 7
+                        multi = 1
+                    
+                print(moved)
                     
                 g = lambda *args: self.get(args[0], args[1])
                 check = lambda i, n_pos = pos: check_move(rows, pos, n_pos, 'b' if self.black else 'w', self.game.flipped)[i] == False
                 
+                def num(n):
+                    if self.game.flipped:
+                        return 7 - n
+                    else:
+                        return n
+                
                 if not moved[0]:
                     if not moved[2]:
-                        if g(row, 1) == 0 and g(row, 2) == 0 and g(row, 3) == 0 and g(row, 0) != 0:
-                            
+                        if g(row, num(1)) == 0 and g(row, num(2)) == 0 and g(row, num(3)) == 0 and g(row, num(4)) != 0:
+                            print(check(1) and check(1, (row, 1)) and check(1, (row, 2)) and check(1, (row, 3)))
                             if check(1) and check(1, (row, 1)) and check(1, (row, 2)) and check(1, (row, 3)):
-                                
-                                moves.append((x - 2, y))
+                                moves.append((x - (2*multi), y))
                             
                     if not moved[1]:
                         if g(row, 5) == 0 and g(row, 6) == 0 and g(row, 7) != 0:
                             if check(0) and check(0, (row, 5)) and check(0, (row, 6)):
-                                moves.append((x + 2, y))
+                                moves.append((x + (2*multi), y))
             
             case 'pawn':
                 if not self.moved:
