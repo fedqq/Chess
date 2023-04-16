@@ -1,12 +1,16 @@
 from tkinter import *
+from tkinter import ttk
 from Check import check_move
 from PIL import Image, ImageTk
 from math import floor
 from Check import get
+import sv_ttk
 
 SPACE_SIZE = 110
-MAIN_BG = '#B48767'
+MAIN_BG = '#1C1C1C'
 SQUARE_BG = '#EBD6B7'
+BACKGROUND = '#3D3D3D'
+FRONT_COLOR = '#E6F4F4'
 BASE_TIME = 1200
 INCREMENT = 500
 
@@ -17,7 +21,7 @@ class Chess:
         self.window = Tk()
         self.window.title('Chess')
         self.window.resizable(False, False)
-        self.window.configure(bg = MAIN_BG)
+        self.window.configure(bg = MAIN_BG, padx = 20, pady = 10)
         self.selected_position = (0, 0)
         self.any_selected = False
         
@@ -49,7 +53,7 @@ class Chess:
                        'highlight-c':       img('highlight-c', 'other'), 
                        'highlight-t':       img('highlight-t', 'other'), 
                        'check':             img('check'), 
-                       'last-move':         img('last-move', 'other')
+                       'last':              img('move-highlight', 'other')
                        }
         
         self.turn               = 'white'
@@ -67,57 +71,63 @@ class Chess:
         self.en_passants_b      = []
         self.moves              = []
         self.move_counter       = 0
+        self.rows               = [[0,0,0,0,0,0,0,0] * 8]
+        self.game_positions     = {}
             
-        self.canvas = Canvas(self.window, bg = MAIN_BG, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8, bd = 0, relief = FLAT)
-        self.label = Label(self.window, text = 'White: \t\tBlack: \t\t', bg = MAIN_BG, font = ('times new roman', 27), fg = 'white')
+        self.canvas = Canvas(self.window, bg = BACKGROUND, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8, bd = 0, relief = FLAT)
+        self.label = ttk.Label(self.window, text = 'White: \t\tBlack: \t\t', font = ('Segoe UI', 27), justify = CENTER)
         self.canvas.tag_lower('bg')
             
         def change(b):
             self.out = b
             
+        self.window.bind('f',           lambda e: self.toggle_flip())
         self.canvas.bind('<Enter>',     lambda *args: change(False))
         self.canvas.bind('<Leave>',     lambda *args: change(True))
         self.window.bind('<Motion>',    self.motion)
         self.window.bind('<Button-1>',  self.click)
-        self.window.bind('f',         lambda e: self.toggle_flip())
         
         self.input_strings = [[StringVar(), '1200'], [StringVar(), '500']]
-        font = ('times new roman', 20)
+        font = ('Segoe UI', 20)
         
-        self.time_label = Label(self.window, text = 'Time: ', font = font, bg = MAIN_BG, fg = 'white')
-        self.time_input = Entry(self.window, bg = MAIN_BG, fg = 'white', bd = 0, font = font, textvariable = self.input_strings[0][0], width = 7)
+        self.time_label = ttk.Label(self.window, text = 'Time: ', font = font)
+        self.time_input = ttk.Entry(self.window, font = font, textvariable = self.input_strings[0][0], width = 7)
         self.time_input.insert(0, f'{BASE_TIME}')
         
-        self.increment_label = Label(self.window, text = ' + ', font = font, bg = MAIN_BG, fg = 'white')
-        self.increment_input = Entry(self.window, bg = MAIN_BG, fg = 'white', bd = 0, font = font, textvariable = self.input_strings[1][0], width = 7)
+        self.increment_label = ttk.Label(self.window, text = ' + ', font = font)
+        self.increment_input = ttk.Entry(self.window, font = font, textvariable = self.input_strings[1][0], width = 7)
         self.increment_input.insert(0, f'{INCREMENT}')
         
-        self.rows = [[0 for _ in range(0, 8)] for _ in range(0, 8)]
-        
-        self.game_positions = {}
+        self.input_strings[0][0].trace('w', lambda *args: self.check_text(True))
+        self.input_strings[1][0].trace('w', lambda *args: self.check_text(False))
         
         i = 0
         for row in range(0, 8):
             for column in range(0, 8):
                 if ((column + (row * 8)) + i) % 2 == 0:
                     (x, y) = proportion(column, row)
-                    self.canvas.create_rectangle(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill = SQUARE_BG, outline = '', tag = 'bg')
+                    self.canvas.create_rectangle(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill = FRONT_COLOR, outline = '', tag = 'bg')
             i += 1
-            
-        self.input_strings[0][0].trace('w', lambda *args: self.check_text(True))
-        self.input_strings[1][0].trace('w', lambda *args: self.check_text(False))
-        
-        self.canvas.create_text(500, 400, text = 'Chess\nPress anywhere to play', font = ('times new roman', 55), justify = CENTER, tag = 'title')
 
-        self.canvas.pack(side = BOTTOM)
-        self.label.pack(side = RIGHT)
-        self.time_label.pack(side = LEFT)
-        self.time_input.pack(side = LEFT)
-        self.increment_label.pack(side = LEFT)
-        self.increment_input.pack(side = LEFT)
+        def toggle():
+            self.flip_on = b_var.get()
+            
+        b_var = BooleanVar()
+        self.flip_toggle = ttk.Checkbutton(self.window, text = 'Flipping', variable = b_var, command = toggle)
+        b_var.set(True)
+
+        self.label.pack(side = TOP)
+        self.canvas.pack(side = TOP)
+        self.flip_toggle.pack(side = LEFT, anchor = W)
+        
+        self.increment_input.pack(side = RIGHT)
+        self.increment_label.pack(side = RIGHT)
+        self.time_input.pack(side = RIGHT)
+        self.time_label.pack(side = RIGHT)
         
         self.update = self.canvas.update
         
+        sv_ttk.set_theme('dark')
         self.window.mainloop()
         
     def create_image(self, position, image, tag = 'pro'):
@@ -172,6 +182,9 @@ class Chess:
         else:
             self.base = int(self.input_strings[0][1])
             self.increment = int(self.input_strings[1][1])
+            
+        self.increment_input.configure(state = 'disabled')
+        self.time_input.configure(state = 'disabled')
         
         self.canvas.delete('piece', 'check', 'highlight', 'hover', 'last')
         
@@ -211,7 +224,7 @@ class Chess:
             text = f'{winner} by {method}'
             symbol = '♔-♚'
         
-        self.canvas.create_text(proportion(4, 3), text = text, font = ('times new roman', 54), fill = 'white', tag = 'title', justify = CENTER)
+        self.canvas.create_text(proportion(4, 3), text = text, font = ('Segoe UI', 54), fill = 'white', tag = 'title', justify = CENTER)
         self.canvas.create_text(proportion(4, 5), text = symbol, font = ('calibri', 100), fill = 'white', tag = 'title', justify = CENTER)
         
     def motion(self, event):
@@ -378,13 +391,13 @@ class Chess:
                     self.pause_timer()
                     self.can_click = False
                     if self.flipped:
-                        self.window.after(500, self.flip, True)
+                        self.window.after(0, self.flip, True)
                     else:
-                        self.window.after(500, self.flip)
+                        self.window.after(0, self.flip)
                         
                 else:
-                    self.create_image(self.last_move[0], self.images['last-move'], 'last')
-                    self.create_image(self.last_move[1], self.images['last-move'], 'last')
+                    self.create_image(self.last_move[0], self.images['last'], 'last')
+                    self.create_image(self.last_move[1], self.images['last'], 'last')
                     
                 self.update()
                 
@@ -551,12 +564,14 @@ class Chess:
         if self.promo_on:
             return
         
+        self.moves = []
+        
         for row in self.rows:
             for square in row:
                 if not type(square) is int:
                     self.canvas.moveto(square.sprite, x = (7 - row.index(square)) * SPACE_SIZE, y = (7-self.rows.index(row)) * SPACE_SIZE)
                     self.canvas.itemconfigure(square.sprite, state = 'normal')
-                    for a in range(0,100000):
+                    for _ in range(0,100000):
                         pass
                     self.canvas.update()
                     
@@ -572,8 +587,8 @@ class Chess:
         
         self.last_move = [[7 - elem for elem in p] for p in self.last_move]
         
-        self.create_image(self.last_move[0], self.images['last-move'], 'last')
-        self.create_image(self.last_move[1], self.images['last-move'], 'last')
+        self.create_image(self.last_move[0], self.images['last'], 'last')
+        self.create_image(self.last_move[1], self.images['last'], 'last')
         
         self.can_click = True
         

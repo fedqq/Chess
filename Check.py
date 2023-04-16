@@ -53,14 +53,14 @@ def check_king(rows, king, black, flipped):
         if check_moves(check[0], check[1], check[2]):
             return True
     
-    a = black
-    multi = 1
+    true_black = black
+    offset = 1
     if flipped:
-        a = not a
-        multi = 1
-    if a:
-        left = get(rows, king[1] + (1*multi), king[0] - 1)
-        right = get(rows, king[1] + (1*multi), king[0] + 1)
+        true_black = not true_black
+        offset = 1
+    if true_black:
+        left = get(rows, king[1] + offset, king[0] - 1)
+        right = get(rows, king[1] + offset, king[0] + 1)
         
         if type(left) is not int and type(left) is not str and left.type != 'int':
             if left.type == 'pawn' and left.black != black:
@@ -71,8 +71,8 @@ def check_king(rows, king, black, flipped):
                 return True
             
     else:
-        left = get(rows, king[1] - (1*multi), king[0] - 1)
-        right = get(rows, king[1] - (1*multi), king[0] + 1)
+        left = get(rows, king[1] - offset, king[0] - 1)
+        right = get(rows, king[1] - offset, king[0] + 1)
         
         if type(left) is not int and type(left) is not str and left.type != 'int':
             if left.type == 'pawn' and left.black != black:
