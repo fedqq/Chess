@@ -14,6 +14,8 @@ FRONT_COLOR = '#E6F4F4'
 BASE_TIME = 1200
 INCREMENT = 500
 
+"testing"
+
 class Chess:
     def __init__(self) -> None:
         self.window = Tk()
