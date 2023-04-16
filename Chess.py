@@ -10,6 +10,8 @@ SQUARE_BG = '#EBD6B7'
 BASE_TIME = 1200
 INCREMENT = 500
 
+"test"
+
 class Chess:
     def __init__(self) -> None:
         self.window = Tk()
