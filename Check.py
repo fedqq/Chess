@@ -19,7 +19,7 @@ def check_move(original_rows, start_move = 0, end_move = 0, test = 'all', flippe
             for square_index, square in enumerate(row):
                 if type(square) is not int and square.type != 'int':
                     if square.type == 'king' and square.black:
-                        ret[1] = check_king(rows, (square_index, row_index), black = True, flipped  = flipped)
+                        ret[1] = check_king(rows, (square_index, row_index), black = True, flipped = flipped)
                         break
          
     return ret
@@ -36,6 +36,8 @@ def check_king(rows, king, black, flipped):
             if type(square) is not int and square.type != 'int':
                 if square.black != black:
                     if square.type in types:
+                        print(square.type)
+                        print(x, y)
                         return True
                     else:
                         break
@@ -54,7 +56,7 @@ def check_king(rows, king, black, flipped):
             return True
     
     true_black = black
-    offset = 1
+    offset = -1
     if flipped:
         true_black = not true_black
         offset = 1
@@ -76,10 +78,12 @@ def check_king(rows, king, black, flipped):
         
         if type(left) is not int and type(left) is not str and left.type != 'int':
             if left.type == 'pawn' and left.black != black:
+                print('pawn')
                 return True
             
         if type(right) is not int and type(right) is not str and right.type != 'int':
             if right.type == 'pawn' and right.black != black:
+                print('pawn')
                 return True    
     
     for move in ((2, 1), (1, 2), (-2, 1), (2, -1), (-2, -1), (-1, 2), (-1, -2), (1, -2)):
@@ -88,6 +92,7 @@ def check_king(rows, king, black, flipped):
         if type(square) is not int and square != 'NA':
             if square.type == 'knight':
                 if square.black != black:
+                    print('knight')
                     return True
         
     return False
