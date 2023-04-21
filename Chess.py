@@ -674,56 +674,64 @@ class Piece:
         self.moved = True
         
     def get_moves(self, position) -> list:
-        moves = []
-        if self.game.flipped:
-            flip_mult = -1
-        else:
-            flip_mult = 1
         
-        multiplier = - flip_mult
+        def flip(list):
+                    if self.game.flipped:
+                        return [7 - n  for n in list]
+                    else:
+                        return list
+        
+        moves = []
+        
+        multiplier = -1
         if self.black:
-            multiplier = flip_mult
-            
-        x = position[0]
-        y = position[1]
+            multiplier = 1
+        
+        pos = flip(position)
+        x, y = pos
         
         game = self.game
         
-        rows = game.rows
+        test_rows = game.rows
+        if game.flipped:
+            test_rows = [row[::-1] for row in test_rows][::-1]
+        
+        g = lambda y, x: get(test_rows, y, x)
         
         def check_increment(x_inc, y_inc):
             test_x = x + x_inc
             test_y = y + y_inc
                         
-            while self.get(test_y, test_x) != 'NA':
+            while g(test_y, test_x) != 'NA':
                             
-                piece: Piece = self.get(test_y, test_x)
+                piece: Piece = g(test_y, test_x)
                 if type(piece) is Piece:
                     if piece.black != self.black:
-                        moves.append((test_x, test_y))
+                        add_move((test_x, test_y))
                     break
                             
-                moves.append((test_x, test_y))
+                add_move((test_x, test_y))
                 test_x += x_inc
                 test_y += y_inc
         
         def check_square(x, y, only_piece = False, only_empty = False) -> bool:
-                    square = self.get(y, x)
+                    square = g(y, x)
                     if type(square) is not str and (type(square) is int or square.black != self.black):
                         if only_piece and not only_empty:
                             if type(square) is Piece:
-                                moves.append((x, y))
+                                add_move((x, y))
                                 return True
                         elif only_empty and not only_piece:
                             if type(square) is not Piece:
-                                moves.append((x, y))
+                                add_move((x, y))
                                 return True
                         else:
-                            moves.append((x, y))
+                            add_move((x, y))
                             return True
                     return False
-                
-        pos = (x, y)
+        
+        def add_move(move):
+            moves.append(flip(move))
         
         match self.type:
             
@@ -731,100 +739,42 @@ class Piece:
                 
                 possible_moves = KING_MOVES
                 
-                multi = -2 * multiplier
-                    
-                char = 'black' if self.black else 'white'
-                get = lambda *args: self.get(args[0], args[1])
-                check = lambda index, n_pos = pos: check_move(rows, pos, n_pos, 'all', self.game.flipped)[index] == False
-                n_check = lambda n_pos = pos: check_move(rows, pos, n_pos, 'all', self.game.flipped)
                 
-                def bf(b):
-                    if not self.black:
-                        return 7 - b
-                    else:
-                        return b
-                
-                def f(n):
-                    if self.game.flipped:
-                        return 7 - n
-                    else:
-                        return n
+                check = lambda index, n_pos = pos: check_move(test_rows, pos, n_pos, 'white' if not self.black else 'black', self.game.flipped)[index] == False
+                n_check = lambda n_pos = pos: check_move(test_rows, pos, flip(n_pos), 'all', self.game.flipped)
                 
                 rooks_moved = [True, True]
                 
-                rrook_pos = (f(7), y)
-                lrook_pos = (f(0), y)
+                rrook_pos = (0, y)
+                lrook_pos = (7, y)
                         
-                rrook = get(rrook_pos[0], rrook_pos[1])
+                rrook = g(rrook_pos[1], rrook_pos[0])
                 if type(rrook) is not int:
                     if not rrook.moved:
                         rooks_moved[1] = False
                         
-                lrook = get(lrook_pos[0], lrook_pos[1])
+                lrook = g(lrook_pos[1], lrook_pos[0])
                 if type(lrook) is not int:
                     if not lrook.moved:
-                        rooks_moved[0] = False
-                        
-                
-                            
-                '''else:
-                    king = get(f(7), f(4))
-                    if type(king) is not int:
-                        if not king.moved:qs
-                            king_moved = False
-                            
-                    rrook = get(f(7), f(0))
-                    if type(rrook) is not int:
-                        if not rrook.moved:
-                            rooks_moved[1] = False
-                            
-                    lrook = get(f(7), f(7))
-                    if type(lrook) is not int:
-                        if not lrook.moved:
-                            rooks_moved[0] = False'''
-                            
-                def m(n):
-                    if self.game.flipped:
-                        return -n
-                    else:
-                        return n        
+                        rooks_moved[0] = False     
                     
                 num = int(self.black == True)
                         
                 if not self.moved:
                     if not rooks_moved[0]:
-                        if get(y, x - m(1)) == 0 and get(y, x - m(2)) == 0 and get(y, x - m(3)) == 0:
-                            print(n_check(), n_check((y, x - m(1))), n_check((y, x - m(2))))
-                            if check(num) and check(num, (y, x - m(1))) and check(num, (y, x - m(2))):
-                                moves.append((x - m(3), y))
+                        if g(y, x - 1) == 0 and g(y, x - 2) == 0 and g(y, x - 3) == 0:
+                            if check(num) and check(num, (x - 1, y)) and check(num, (x - 2, y)):
+                                add_move((x - 2, y))
                                 
                     if not rooks_moved[1]:
-                        if get(y, x + m(1)) == 0 and get(y, x + m(2)) == 0:
-                            if check(num) and check(num, (y, x + m(1))):
-                                moves.append((x + m(2), y))
-                
-                '''if not king_moved:
-                    if not rooks_moved[1]:
-                        print('a')
-                        if get(y, bf(1)) == 0 and get(y, bf(2)) == 0 and get(y, bf(3)) == 0 and get(y, bf(4)) != 0:
-                            print('t')
-                            if check(1) and check(1, (y, bf(1))) and check(1, (y, bf(2))) and check(1, (y, bf(3))):
-                                print('g')
-                                moves.append((f(x - multi), y))
-                            
-                    if not rooks_moved[0]:
-                        print('b')
-                        if get(y, 5) == 0 and get(y, 6) == 0 and get(y, 7) != 0:
-                            print('f')
-                            if check(0) and check(0, (y, 5)) and check(0, (y, 6)):
-                                print('c')
-                                moves.append((f(x + multi), y))'''
+                        if g(y, x + 1) == 0 and g(y, x + 2) == 0:
+                            if check(num) and check(num, (x + 1, y)):
+                                add_move((x + 2, y))
                                 
-                print('  ')
             
             case 'pawn':
                 if not self.moved:
-                    if check_square(x, y + multiplier, only_empty = True) and not check_move(rows, pos, (x, y + multiplier), flipped = self.game.flipped)[1 if self.black else 0]:
+                    if check_square(x, y + multiplier, only_empty = True) and not check_move(test_rows, pos, (x, y + multiplier), flipped = self.game.flipped)[1 if self.black else 0]:
                         check_square(x, y + 2 * multiplier, only_empty = True)
                         
                 else:
@@ -837,16 +787,18 @@ class Piece:
                     en_passants = game.en_passants_w
                 else:
                     en_passants = game.en_passants_b
+                    
+                en_passants = [flip(elem) for elem in en_passants]
                 
                 tuple = (x - multiplier, y + multiplier)
                 found_passant = element_in_list(tuple, en_passants)
                 if found_passant:
-                    moves.append(element_in_list(tuple, en_passants, ret = True))
+                    add_move(element_in_list(tuple, en_passants, ret = True))
                     
                 tuple = (x + multiplier, y + multiplier)
                 found_passant = element_in_list(tuple, en_passants)
                 if found_passant:
-                    moves.append(element_in_list(tuple, en_passants, ret = True))
+                    add_move(element_in_list(tuple, en_passants, ret = True))
                       
             case 'knight':
                 
@@ -866,16 +818,18 @@ class Piece:
               
         if not self.type == 'pawn':  
             check_inc = possible_moves[-1]
+            real_move = possible_moves[:-1]
             
-            for move in possible_moves[:-1]:
+            for move in real_move:
+                m = move
                 if check_inc:
-                    check_increment(move[0], move[1])
+                    check_increment(m[0], m[1])
                 else:
-                    check_square(x + move[0], y + move[1])
+                    check_square(x + m[0], y + m[1])
                     
         legal_moves = []
         for move in moves:
-            if not check_move(rows, (x, y), move, flipped = self.game.flipped)[1 if self.black else 0]:
+            if not check_move(test_rows, (x, y), flip(move), flipped = False)[1 if self.black else 0]:
                 if type(self.get(tuple = move)) is not int:
                     if self.get(tuple = move).type != 'king':
                         legal_moves.append(move)
@@ -892,6 +846,9 @@ class Piece:
                 return f"n{'b' if self.black else 'w'} "   
             else:
                 return f"r{'b' if self.black else 'w'} "
+            
+    def __str__(self) -> str:
+        return f"{self.type}: {'black' if self.black else 'white'}"
     
 def proportion(*args) -> list:
     return [a * SPACE_SIZE for a in (args[0] if len(args) == 1 else args)]

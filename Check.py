@@ -1,9 +1,18 @@
 def check_move(original_rows, start_move = 0, end_move = 0, test = 'all', flipped = False):
-    rows = [[TestPiece(square) for square in row] for row in original_rows]
-    if not start_move == end_move:
-        rows[end_move[1]][end_move[0]] = rows[start_move[1]][start_move[0]] 
-        rows[start_move[1]][start_move[0]] = 0
     
+    rows = [[TestPiece(square) for square in row] for row in original_rows]
+    print(end_move)
+    
+    if not start_move == end_move:
+        rows[end_move[1]][end_move[0]] = rows[start_move[1]][start_move[0]]
+        rows[start_move[1]][start_move[0]] = 0
+        
+    for r in rows:
+            for a in r:
+                print(a, end = '\t\t')
+            print('')
+    print(' ')
+        
     ret = [False, False]
     
     if test != 'black':
@@ -37,6 +46,7 @@ def check_king(rows, king, black, flipped):
                 if square.black != black:
                     if square.type in types:
                         print(square.type)
+                        print(king)
                         print(x, y)
                         return True
                     else:
@@ -78,12 +88,10 @@ def check_king(rows, king, black, flipped):
         
         if type(left) is not int and type(left) is not str and left.type != 'int':
             if left.type == 'pawn' and left.black != black:
-                print('pawn')
                 return True
             
         if type(right) is not int and type(right) is not str and right.type != 'int':
             if right.type == 'pawn' and right.black != black:
-                print('pawn')
                 return True    
     
     for move in ((2, 1), (1, 2), (-2, 1), (2, -1), (-2, -1), (-1, 2), (-1, -2), (1, -2)):
@@ -92,7 +100,6 @@ def check_king(rows, king, black, flipped):
         if type(square) is not int and square != 'NA':
             if square.type == 'knight':
                 if square.black != black:
-                    print('knight')
                     return True
         
     return False
@@ -120,3 +127,8 @@ class TestPiece:
             self.selected = False 
         else:
             self.type = 'int'
+            
+    def __str__(self) -> str:
+        if self.type == 'int':
+            return '0'
+        return f"{self.type[:2]}: {'b' if self.black else 'w'}"
