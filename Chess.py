@@ -104,6 +104,7 @@ class Chess:
         self.get            = lambda y = 0, x = 0, tuple = 'empty': get(self.rows, y, x, tuple)
         self.any_selected   = lambda: self.selected_position != 0
         self.update         = self.canvas.update
+        self.delete         = self.canvas.delete
         
         self.window.title('Chess')
         self.window.resizable(False, False)
@@ -146,45 +147,7 @@ class Chess:
         self.window.bind('<Button-1>',  self.click)
 
         self.window.mainloop()
-        
-    def deselect(self):
-        self.canvas.delete('moves', 'hover', 'highlight')
-        self.selected_position = 0
-        self.avail_moves = []
-        
-    def create_img(self, position, image, tag = 'piece', raise_p = True):
-            ret = self.canvas.create_image(proportion(position), image = image, anchor = NW, tag = tag)
-            if raise_p:
-                self.canvas.tag_raise('piece')
-            return ret
-        
-    def show_promote_menu(self, position, black = False):
-        self.promo_menu_showing = True
-        pos = (2, 3.5)
-        self.create_img(pos, self.images['promote'], tag = 'pro')
-        
-        queen       = self.create_img(        pos         , self.images['queen' ][black], tag = 'pro')
-        rook        = self.create_img((pos[0] + 1, pos[1]), self.images[ 'rook' ][black], tag = 'pro')
-        bishop      = self.create_img((pos[0] + 2, pos[1]), self.images['bishop'][black], tag = 'pro')
-        knight      = self.create_img((pos[0] + 3, pos[1]), self.images['knight'][black], tag = 'pro')
-        
-        self.canvas.tag_bind(queen  , '<Button-1>', lambda e: select('queen' ))
-        self.canvas.tag_bind(rook   , '<Button-1>', lambda e: select( 'rook' ))
-        self.canvas.tag_bind(bishop , '<Button-1>', lambda e: select('bishop'))
-        self.canvas.tag_bind(knight , '<Button-1>', lambda e: select('knight'))
-        
-        self.can_click = False
-        
-        def select(type):
-            self.canvas.delete('pro')
-            self.can_click = True
-            self.canvas.delete(self.get(tuple = position).sprite)
-            self.assign_element(position)
-            self.assign_element(position, Piece(position, self, black, type))
-            self.promo_menu_showing = False
-            if self.flip_enabled:
-                self.flip()
-        
+
     def start_game(self):
         
         if self.input_strings[0][1].strip() == '' or self.input_strings[1][1].strip() == '':
@@ -197,7 +160,7 @@ class Chess:
         self.time_input.configure(state = 'disabled')
         self.draw_btn.configure(state = 'normal')
         
-        self.canvas.delete('piece', 'check', 'highlight', 'hover', 'last', 'title')
+        self.delete('piece', 'check', 'highlight', 'hover', 'last', 'title')
         
         self.timer                  = [self.base, self.base]
         self.black_king             = (4, 0)
@@ -220,10 +183,7 @@ class Chess:
                     ]
         
         self.past_ids = {self.get_position_id(): 1}
-          
-    def restart(self, *args):
-        self.start_game()
-        
+   
     def lose_game(self, winner = 'Draw', method = 'Checkmate'):
         self.time_input.configure(state = 'normal')
         self.increment_input.configure(state = 'normal')
@@ -244,74 +204,6 @@ class Chess:
         
         self.canvas.create_text(proportion(4, 3), text = text, font = ('Segoe UI', 54), fill = 'white', tag = 'title', justify = CENTER)
         self.canvas.create_text(proportion(4, 5), text = symbol, font = ('Segoe UI', 100), fill = 'white', tag = 'title', justify = CENTER)
-        
-    def motion(self, event):
-            self.canvas.delete('hover')
-            mouse_x = event.x - event.x % SPACE_SIZE
-            mouse_x = int(mouse_x / SPACE_SIZE)
-            mouse_y = event.y - event.y % SPACE_SIZE
-            mouse_y = int(mouse_y / SPACE_SIZE)
-            
-            if mouse_x > 7:
-                mouse_x = 7
-            elif mouse_x < 0:
-                mouse_x = 0
-                
-            if mouse_y > 7:
-                mouse_y = 7
-            elif mouse_y < 0:
-                mouse_y = 0
-                
-            self.mouse_position = (mouse_x, mouse_y)
-                
-            if len(self.avail_moves) != 0:
-                if element_in_list(self.mouse_position, self.avail_moves):
-                    is_piece = type(self.get(tuple = self.mouse_position)) is Piece
-                    file_name = f"highlight-{'t' if is_piece else 'c'}"
-                    self.create_img(self.mouse_position, self.images[file_name], 'hover')
-                    
-    def count_advantage(self):
-        scores = [0, 0]
-        for row in self.rows:
-            for square in row:
-                if type(square) is int:
-                    continue
-                
-                num = 0
-                if square.black:
-                    num = 1
-                    
-                short = square.type[:2]
-                if short in 'knbi':
-                    scores[num] += 3
-                elif short in 'rr lr':
-                    scores[num] += 5
-                elif short == 'ki':
-                    scores[num] += 4
-                elif short == 'qu':
-                    scores[num] += 9
-                else:
-                    scores[num] += 1
-                    
-        if scores[0] > scores[1]:
-            return scores[0] - scores[1], 'w'
-        elif scores[0] < scores[1]:
-            return scores[1] - scores[0], 'b'
-        else:
-            return 0, 'd'
-               
-    def switch_turn(self):
-        
-        if self.turn == 'white':
-            self.turn = 'black'
-            self.timer[1] += INCREMENT
-            if not DEBUG:
-                self.black_passants.clear()
-        else:
-            self.turn = 'white'
-            self.timer[0] += INCREMENT
-            if not DEBUG:
-                self.white_passants.clear()
         
     def click(self, event):
         if not self.playing:
@@ -472,37 +364,73 @@ class Chess:
                     clicked_square.select(mouse_position)
                     self.selected_position = mouse_position
                     self.draw_moves(clicked_square.get_moves(mouse_position))
+                
+    def deselect(self):
+        self.delete('moves', 'hover', 'highlight')
+        self.selected_position = 0
+        self.avail_moves = []
         
+    def create_img(self, position, image, tag = 'piece', raise_p = True):
+            ret = self.canvas.create_image(proportion(position), image = image, anchor = NW, tag = tag)
+            if raise_p:
+                self.canvas.tag_raise('piece')
+            return ret
+        
+    def show_promote_menu(self, position, black = False):
+        self.promo_menu_showing = True
+        pos = (2, 3.5)
+        self.create_img(pos, self.images['promote'], tag = 'pro')
+        
+        queen       = self.create_img(        pos         , self.images['queen' ][black], tag = 'pro')
+        rook        = self.create_img((pos[0] + 1, pos[1]), self.images[ 'rook' ][black], tag = 'pro')
+        bishop      = self.create_img((pos[0] + 2, pos[1]), self.images['bishop'][black], tag = 'pro')
+        knight      = self.create_img((pos[0] + 3, pos[1]), self.images['knight'][black], tag = 'pro')
+        
+        self.canvas.tag_bind(queen  , '<Button-1>', lambda e: select('queen' ))
+        self.canvas.tag_bind(rook   , '<Button-1>', lambda e: select( 'rook' ))
+        self.canvas.tag_bind(bishop , '<Button-1>', lambda e: select('bishop'))
+        self.canvas.tag_bind(knight , '<Button-1>', lambda e: select('knight'))
+        
+        self.can_click = False
+        
+        def select(type):
+            self.can_click = True
+            self.delete(self.get(tuple = position).sprite, 'pro')
+            self.assign_element(position)
+            self.assign_element(position, Piece(position, self, black, type))
+            self.promo_menu_showing = False
+            if self.flip_enabled:
+                self.flip()
+                
+    def motion(self, event):
+            self.delete('hover')
+            mouse_x = floor(event.x / SPACE_SIZE)
+            mouse_y = floor(event.y / SPACE_SIZE)
+                
+            self.mouse_position = (mouse_x, mouse_y)
+                
+            if len(self.avail_moves) != 0:
+                if element_in_list(self.mouse_position, self.avail_moves):
+                    is_piece = type(self.get(tuple = self.mouse_position)) is Piece
+                    file_name = f"highlight-{'t' if is_piece else 'c'}"
+                    self.create_img(self.mouse_position, self.images[file_name], 'hover')
+           
+    def switch_turn(self):
+        
+        if self.turn == 'white':
+            self.turn = 'black'
+            self.timer[1] += INCREMENT
+            if not DEBUG:
+                self.black_passants.clear()
+        else:
+            self.turn = 'white'
+            self.timer[0] += INCREMENT
+            if not DEBUG:
+                self.white_passants.clear()
+
     def assign_element(self, place, element = 0):
         self.rows[place[1]][place[0]] = element
         
-    def get_position_id(self):
-        
-        string = ''
-        
-        for row in self.rows:
-            for square in row:
-                if type(square) is int:
-                    string += '0'
-                else:
-                    string += square.string()
-                    
-        if len(self.black_passants) < 1:
-            string += '0'
-        
-        for e in self.black_passants:
-            string += f'{e}'
-            
-        if len(self.white_passants) < 1:
-            string += '0'
-        
-        for e in self.white_passants:
-            string += f'{e}'
-            
-        string += f'{self.turn[0]}'
-        
-        return string
-    
     def pause_timer(self):
         self.paused = True
         
@@ -553,18 +481,15 @@ class Chess:
             self.lose_game(method = '\nFifty Move Rule')
         
     def test_check(self) -> tuple:
-        self.canvas.delete('check')
+        self.delete('check')
         rows = self.rows
         
-        check = check_move(self.rows, flipped = self.flipped)
+        white_check, black_check = check = check_move(self.rows, flipped = self.flipped)
         
         if check != [False, False]:
-            
-            self.create_img(self.white_king if check[0] else self.black_king, self.images['check'], 'check')
+            self.create_img(self.white_king if white_check else self.black_king, self.images['check'], 'check')
                 
-        moveable = [False, False]
-        
-        self.canvas.pack()
+        white_moveable, black_moveable = [False, False]
                                 
         for row in rows:
             for square in row:
@@ -572,7 +497,7 @@ class Chess:
                     continue
                 if square.black:
                     if len(square.get_moves((row.index(square), rows.index(row)))) > 0:
-                        moveable[1] = True
+                        white_moveable = True
                         break
              
         for row in rows:
@@ -581,22 +506,80 @@ class Chess:
                     continue
                 if not square.black:
                     if len(square.get_moves((row.index(square), rows.index(row)))) > 0:
-                        moveable[0] = True
+                        black_moveable = True
                         break
-        
-        if not moveable[0]:
-            if check[0]: 
-                self.lose_game('Black')
-                return
-            else:
-                self.lose_game()
-        if not moveable[1]:
-            if check[1]:
+                
+        if not white_moveable:
+            if black_check:
                 self.lose_game('White')
                 return
             else:
                 self.lose_game(method = 'Stalemate')
+        
+        if not black_moveable:
+            if white_check: 
+                self.lose_game('Black')
+                return
+            else:
+                self.lose_game()
     
+    def get_position_id(self):
+        
+        string = ''
+        
+        for row in self.rows:
+            for square in row:
+                if type(square) is int:
+                    string += '0'
+                else:
+                    string += square.string()
+                    
+        if len(self.black_passants) < 1:
+            string += '0'
+        
+        for e in self.black_passants:
+            string += f'{e}'
+            
+        if len(self.white_passants) < 1:
+            string += '0'
+        
+        for e in self.white_passants:
+            string += f'{e}'
+            
+        string += f'{self.turn[0]}'
+        
+        return string
+
+    def count_advantage(self):
+        scores = [0, 0]
+        for row in self.rows:
+            for square in row:
+                if type(square) is int:
+                    continue
+                
+                num = 0
+                if square.black:
+                    num = 1
+                    
+                short = square.type[:2]
+                if short in 'knbi':
+                    scores[num] += 3
+                elif short in 'rr lr':
+                    scores[num] += 5
+                elif short == 'ki':
+                    scores[num] += 4
+                elif short == 'qu':
+                    scores[num] += 9
+                else:
+                    scores[num] += 1
+                    
+        if scores[0] > scores[1]:
+            return scores[0] - scores[1], 'w'
+        elif scores[0] < scores[1]:
+            return scores[1] - scores[0], 'b'
+        else:
+            return 0, 'd'
+            
     def draw_moves(self, moves):
         self.avail_moves = moves
         for move in moves:
@@ -835,9 +818,6 @@ class Piece:
                 return f"n{'b' if self.black else 'w'}{int(self.moved)} "   
             else:
                 return f"r{'b' if self.black else 'w'}{int(self.moved)} "
-            
-    def __str__(self) -> str:
-        return f"{self.type}: {'black' if self.black else 'white'}"
     
 def proportion(*args) -> list:
     return [a * SPACE_SIZE for a in (args[0] if len(args) == 1 else args)]
