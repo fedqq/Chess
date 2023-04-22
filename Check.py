@@ -1,17 +1,10 @@
 def check_move(original_rows, start_move = 0, end_move = 0, test = 'all', flipped = False):
     
     rows = [[TestPiece(square) for square in row] for row in original_rows]
-    print(end_move)
     
     if not start_move == end_move:
         rows[end_move[1]][end_move[0]] = rows[start_move[1]][start_move[0]]
         rows[start_move[1]][start_move[0]] = 0
-        
-    for r in rows:
-            for a in r:
-                print(a, end = '\t\t')
-            print('')
-    print(' ')
         
     ret = [False, False]
     
@@ -45,9 +38,6 @@ def check_king(rows, king, black, flipped):
             if type(square) is not int and square.type != 'int':
                 if square.black != black:
                     if square.type in types:
-                        print(square.type)
-                        print(king)
-                        print(x, y)
                         return True
                     else:
                         break
