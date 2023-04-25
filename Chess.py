@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 from math import floor
 import sv_ttk
 from ctypes import windll
+import os
 
 windll.shcore.SetProcessDpiAwareness(1)
 
@@ -13,6 +14,8 @@ SPACE_SIZE = None #To be set after the window is created, as a fraction of the s
 BASE_TIME = 1200
 INCREMENT = 500
 DEBUG = True
+
+Utils._set_theme('riohacha')
 
 proportion = Utils._proportion
 element_in_list = Utils._element_in_list
@@ -77,6 +80,20 @@ class Chess:
         inc_label = ttk.Label           (settings_frame, text = ' + ')
         f_toggle = ttk.Checkbutton      (settings_frame, text = 'Flipping', command = toggle_flip, variable = b_var)
         
+        def testing(*args):
+            print(theme_box.get())
+            Utils._set_theme(theme_box.get())
+            print('a')
+            self.reset_images()
+            for row in self.rows:
+                for square in row:
+                    if type(square) is Piece:
+                        square.set_image()
+        
+        theme_box = ttk.Combobox(settings_frame, values = os.listdir('resources/themes/'), takefocus = False, state = 'readonly')
+        theme_box.bind("<<ComboboxSelected>>", testing)
+        theme_box.set('cburnett')
+        
         time_input.insert(0, str(BASE_TIME))
         inc_input.insert(0, str(INCREMENT))
         b_var.set(True)
@@ -90,11 +107,14 @@ class Chess:
         pack(time_input)
         pack(inc_label)
         pack(inc_input)
+        pack(theme_box)
         pack(f_toggle, RIGHT, 10)
         pack(draw_btn, RIGHT, 20)
         pack(label_frame, TOP, expand = True, fill = tk.BOTH)
         pack(canvas, TOP)
         pack(settings_frame, TOP, expand = True, fill = tk.BOTH)
+        
+        m = Utils._Variables.MAIN_BG.value
         
         sv_ttk.set_theme('dark')
         style = ttk.Style(self.root)
@@ -102,6 +122,8 @@ class Chess:
         style.configure('TCheckbutton', font = ("Segoe UI", 15))
         style.configure('TEntry',       font = ("Segoe UI", 15))
         style.configure('TLabel',       font = ("Segoe UI", 15))
+        style.configure('TCombobox',    font = ("Segoe UI", 15))
+        style.map('TCombobox', selectbackground = [('hover', m), ('focus', m), ('active', m), ('selected', m), ('pressed', m), ('disabled focus', m)])
         
         self.get            = lambda y = 0, x = 0, tuple = 'empty': Utils._get(self.rows, y, x, tuple)
         self.any_selected   = lambda: self.selected_position != 0
@@ -112,25 +134,7 @@ class Chess:
         self.root.resizable(False, False)
         self.root.configure(bg = Utils._Variables.MAIN_BG.value, padx = 20)
         
-        def img(file_name, pre = 'pieces', size = (SPACE_SIZE, SPACE_SIZE)):
-            image = Image.open(f'resources/{pre}/{file_name}.png')
-            return ImageTk.PhotoImage(image.resize(size, Image.LANCZOS))
-        
-        def add_piece(*args):
-            piece = args[-1]
-            args = args[:-1]
-            if piece:
-                for name in args:
-                    self.images[name] = {False: img(name + '-w'), True: img(name + '-b')}
-            else:
-                for name in args:
-                    self.images[name] = img(name, 'other')
-        
-        add_piece('pawn', 'rook', 'bishop', 'knight', 'queen', 'king', True)
-        add_piece('move-take', 'move-circle', 'highlight-c', 'highlight-t', 'check', 'last', 'highlight', False)
-        
-        self.images['promote']  = img('promote', 'other', (SPACE_SIZE * 4, SPACE_SIZE))
-        self.images['end-menu'] = img('promote', 'other', (SPACE_SIZE * 8, SPACE_SIZE * 8))
+        self.reset_images()
         
         for row in range(0, 8):
             for column in range(0, 8):
@@ -149,6 +153,28 @@ class Chess:
         self.root.bind('<Button-1>',  self.click)
 
         self.root.mainloop()
+        
+    def reset_images(self):
+        
+        def img(file_name, pre = 'themed-pieces/', size = (SPACE_SIZE, SPACE_SIZE)):
+            image = Image.open(f'resources/{pre}/{file_name}.png')
+            return ImageTk.PhotoImage(image.resize(size, Image.LANCZOS))
+        
+        def add_piece(*args):
+            piece = args[-1]
+            args = args[:-1]
+            if piece:
+                for name in args:
+                    self.images[name] = {False: img(name + '-w'), True: img(name + '-b')}
+            else:
+                for name in args:
+                    self.images[name] = img(name, 'other')
+        
+        add_piece('pawn', 'rook', 'bishop', 'knight', 'queen', 'king', True)
+        add_piece('move-take', 'move-circle', 'highlight-c', 'highlight-t', 'check', 'last', 'highlight', False)
+        
+        self.images['promote']  = img('promote', 'other', (SPACE_SIZE * 4, SPACE_SIZE))
+        self.images['end-menu'] = img('promote', 'other', (SPACE_SIZE * 8, SPACE_SIZE * 8))
 
     def start_game(self):
         
@@ -752,6 +778,9 @@ class Piece:
                     legal_moves.append(move)
             
         return legal_moves
+    
+    def set_image(self):
+        self.game.canvas.itemconfig(self.sprite, image = self.game.images['rook' if 'rook' in self.type else self.type][self.black])
     
     def piece_id(self):
         if self.type != 'knight' and self.type not in 'lrookrrook':
