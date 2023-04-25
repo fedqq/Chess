@@ -15,8 +15,6 @@ BASE_TIME = 1200
 INCREMENT = 500
 DEBUG = True
 
-Utils._set_theme('riohacha')
-
 proportion = Utils._proportion
 element_in_list = Utils._element_in_list
 flip_list = Utils._flip_list
@@ -67,32 +65,28 @@ class Chess:
         draw = lambda: self.lose_game(method = '\nAgreement')
         font = ('Segoe UI', 22)
         
-        canvas = self.canvas          = tk.Canvas(self.root, bg = Utils._Variables.BACKGROUND.value, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8)
-        settings_frame = self.options = ttk.Frame(self.root, width = SPACE_SIZE * 8)
-        label_frame = self.labels     = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        canvas = self.canvas             = tk.Canvas(self.root, bg = Utils._Variables.BACKGROUND.value, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8)
+        settings_frame = self.options    = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        label_frame = self.labels        = ttk.Frame(self.root, width = SPACE_SIZE * 8)
         
-        white_lbl = self.white_label     = ttk.Label  (label_frame, text = 'W: \tPoints: ', font = font)
-        black_lbl = self.black_label     = ttk.Label  (label_frame, text = 'B: \tPoints: \t', font = font)
-        draw_btn = self.draw_btn         = ttk.Button (settings_frame, command = draw, text = 'Draw', style = 'Accent.TButton', state = 'disabled')
-        inc_input = self.increment_input = ttk.Entry  (settings_frame, textvariable = inc_string[0], width = 7)
-        time_input = self.time_input     = ttk.Entry  (settings_frame, textvariable = time_string[0], width = 7)
-        time_label = ttk.Label          (settings_frame, text = 'Time: ')
-        inc_label = ttk.Label           (settings_frame, text = ' + ')
-        f_toggle = ttk.Checkbutton      (settings_frame, text = 'Flipping', command = toggle_flip, variable = b_var)
+        white_lbl = self.white_label     = ttk.Label (label_frame, text = 'W: \tPoints: ', font = font)
+        black_lbl = self.black_label     = ttk.Label (label_frame, text = 'B: \tPoints: \t', font = font)
+        draw_btn = self.draw_btn         = ttk.Button(settings_frame, command = draw, text = 'Draw', style = 'Accent.TButton', state = 'disabled')
+        inc_input = self.increment_input = ttk.Entry (settings_frame, textvariable = inc_string[0], width = 7)
+        time_input = self.time_input     = ttk.Entry (settings_frame, textvariable = time_string[0], width = 7)
+        time_label = ttk.Label           (settings_frame, text = 'Time: ')
+        inc_label = ttk.Label            (settings_frame, text = ' + ')
+        f_toggle = ttk.Checkbutton       (settings_frame, text = 'Flipping', command = toggle_flip, variable = b_var)
         
         def testing(*args):
-            print(theme_box.get())
             Utils._set_theme(theme_box.get())
-            print('a')
             self.reset_images()
-            for row in self.rows:
-                for square in row:
-                    if type(square) is Piece:
-                        square.set_image()
         
         theme_box = ttk.Combobox(settings_frame, values = os.listdir('resources/themes/'), takefocus = False, state = 'readonly')
         theme_box.bind("<<ComboboxSelected>>", testing)
         theme_box.set('cburnett')
+        for v in os.listdir('resources/themes/'):
+            Utils._set_theme(v)
         
         time_input.insert(0, str(BASE_TIME))
         inc_input.insert(0, str(INCREMENT))
@@ -100,7 +94,7 @@ class Chess:
         
         RIGHT = tk.RIGHT
         TOP = tk.TOP
-        
+         
         pack(white_lbl)
         pack(black_lbl, RIGHT)
         pack(time_label)
@@ -156,7 +150,7 @@ class Chess:
         
     def reset_images(self):
         
-        def img(file_name, pre = 'themed-pieces/', size = (SPACE_SIZE, SPACE_SIZE)):
+        def img(file_name, pre = f'themes/{Utils._theme}', size = (SPACE_SIZE, SPACE_SIZE)):
             image = Image.open(f'resources/{pre}/{file_name}.png')
             return ImageTk.PhotoImage(image.resize(size, Image.LANCZOS))
         
@@ -175,6 +169,11 @@ class Chess:
         
         self.images['promote']  = img('promote', 'other', (SPACE_SIZE * 4, SPACE_SIZE))
         self.images['end-menu'] = img('promote', 'other', (SPACE_SIZE * 8, SPACE_SIZE * 8))
+        
+        for row in self.rows:
+            for square in row:
+                if type(square) is Piece:
+                    square.set_image()
 
     def start_game(self):
         

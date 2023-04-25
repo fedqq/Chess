@@ -8,34 +8,11 @@ import shutil
 
 SPACE_SIZE = 0
 _flipped = False
+_theme = 'cburnett'
 
-def _set_theme(theme):
-    path = f'resources/themes/{theme}/'
-    new_path = 'resources/themed-pieces/'
-    shutil.rmtree(new_path)
-    os.mkdir(new_path)
-    make_image(f'{new_path}bishop-b.png', f'{path}bB.svg')
-    make_image(f'{new_path}bishop-w.png', f'{path}wB.svg')
-    make_image(f'{new_path}rook-b.png', f'{path}bR.svg')
-    make_image(f'{new_path}rook-w.png', f'{path}wR.svg')
-    make_image(f'{new_path}king-b.png', f'{path}bK.svg')
-    make_image(f'{new_path}king-w.png', f'{path}wK.svg')
-    make_image(f'{new_path}knight-b.png', f'{path}bN.svg')
-    make_image(f'{new_path}knight-w.png', f'{path}wN.svg')
-    make_image(f'{new_path}pawn-b.png', f'{path}bP.svg')
-    make_image(f'{new_path}pawn-w.png', f'{path}wP.svg')
-    make_image(f'{new_path}queen-b.png', f'{path}bQ.svg')
-    make_image(f'{new_path}queen-w.png', f'{path}wQ.svg')
-    
-def make_image(name, og_file_name):
-    drawing = svg2rlg(og_file_name)
-    pdf = renderPDF.drawToString(drawing)
-
-    doc = fitz.Document(stream=pdf)
-    page = doc.load_page(0)
-    '''page.set_mediabox(fitz.Rect(2, -3, 131, 126))'''
-    pix = page.get_pixmap(alpha=True, dpi=300)
-    pix.save(name)
+def _set_theme(theme = 'cburnett'):
+    global _theme
+    _theme = theme
 
 class _Variables(Enum):
     MAIN_BG = '#1C1C1C'
