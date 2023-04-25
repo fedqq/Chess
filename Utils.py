@@ -10,7 +10,6 @@ class _Variables(Enum):
     BASE_TIME = 1200
     INCREMENT = 500
 
-
 #The last value determines whether the moves signify an incremental change with those values or an absolute move to those positions relative to the piece's position
 _moves_dict = {'knight': ((2, 1), (1, 2), (-2, 1), (2, -1), (-2, -1), (-1, 2), (-1, -2), (1, -2), False), 
                'king': ((0, 1), (1, 0), (1, 1), (-1, 0), (0, -1), (-1, -1), (-1, 1), (1, -1), False), 
@@ -49,7 +48,7 @@ def _get(rows, yp = 0, xp = 0, tuple = 'empty'):
 
 def _flip_list(_list, ignore_flipped = False):
     if len(_list) == 0:
-        return []
+        return _list
     
     if type(_list[0]) is list or type(_list[0]) is tuple:
         if ignore_flipped or _flipped:
