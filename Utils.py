@@ -9,17 +9,24 @@ import shutil
 SPACE_SIZE = 0
 _flipped = False
 _theme = 'cburnett'
+_dark = True
 
 def _set_theme(theme = 'cburnett'):
     global _theme
     _theme = theme
-
-class _Variables(Enum):
-    MAIN_BG = '#1C1C1C'
-    BACKGROUND = '#686868'
-    FRONT_COLOR = '#E6F4F4'
-    BASE_TIME = 1200
-    INCREMENT = 500
+    
+class _Color_Scheme:
+    def __init__(self, *args) -> None:
+        self.main_bg, self.background, self.front_color, self.widget_color, self.text_fill = args
+        
+_dark_c = _Color_Scheme('#1C1C1C', '#686868', '#E6F4F4', '#2A2A2A', '#FAFAFA')
+_light_c = _Color_Scheme('#FAFAFA', '#686868', '#E6F4F4', '#F9F9F9', '#1C1C1C')
+    
+def _get_scheme():
+    if _dark:
+        return _dark_c
+    else:
+        return _light_c
 
 #The last value determines whether the moves signify an incremental change with those values or an absolute move to those positions relative to the piece's position
 _moves_dict = {'knight': ((2, 1), (1, 2), (-2, 1), (2, -1), (-2, -1), (-1, 2), (-1, -2), (1, -2), False), 

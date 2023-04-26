@@ -19,6 +19,8 @@ proportion = Utils._proportion
 element_in_list = Utils._element_in_list
 flip_list = Utils._flip_list
 flip_num = Utils._flip_num
+def colors() -> Utils._Color_Scheme:
+    return Utils._get_scheme()
 
 class Chess:  
     def __init__(self) -> None:
@@ -62,10 +64,34 @@ class Chess:
         def toggle_flip():
             self.flip_enabled = b_var.get()
             
+        def switch_mode():
+            Utils._dark = not Utils._dark
+            self.root.configure(bg = colors().main_bg)
+            m = colors().widget_color
+            style = ttk.Style()
+            if Utils._dark:
+                light_toggle.configure(text = 'Dark Mode')
+                sv_ttk.use_dark_theme()
+                style.theme_use('sun-valley-dark')
+            else:
+                light_toggle.configure(text = 'Light Mode')
+                sv_ttk.use_light_theme()
+                style.theme_use('sun-valley-light')
+            
+            style.configure('Switch.TCheckbutton', fg = colors().text_fill)
+            style.map('TCombobox', selectbackground = [('hover', m), ('focus', m), ('active', m), ('pressed', m), ('!focus', m)])
+            m = colors().text_fill
+            style.map('TCombobox', selectforeground = [('hover', m), ('focus', m), ('active', m), ('pressed', m), ('!focus', m)])
+                
+        def set_theme(*args):
+            Utils._set_theme(theme_box.get())
+            self.reset_images()
+            canvas.focus()
+            
         draw = lambda: self.lose_game(method = '\nAgreement')
-        font = ('Segoe UI', 22)
+        font = ('Default', 22)
         
-        canvas = self.canvas             = tk.Canvas(self.root, bg = Utils._Variables.BACKGROUND.value, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8)
+        canvas = self.canvas             = tk.Canvas(self.root, bg = colors().background, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8)
         settings_frame = self.options    = ttk.Frame(self.root, width = SPACE_SIZE * 8)
         label_frame = self.labels        = ttk.Frame(self.root, width = SPACE_SIZE * 8)
         
@@ -77,16 +103,11 @@ class Chess:
         time_label = ttk.Label           (settings_frame, text = 'Time: ')
         inc_label = ttk.Label            (settings_frame, text = ' + ')
         f_toggle = ttk.Checkbutton       (settings_frame, text = 'Flipping', command = toggle_flip, variable = b_var)
+        theme_box = ttk.Combobox         (settings_frame, values = os.listdir('resources/themes/'), state = 'readonly')
+        light_toggle = ttk.Checkbutton   (self.options, text = 'Dark Mode', style = 'Switch.TCheckbutton', command = switch_mode)
         
-        def testing(*args):
-            Utils._set_theme(theme_box.get())
-            self.reset_images()
-        
-        theme_box = ttk.Combobox(settings_frame, values = os.listdir('resources/themes/'), takefocus = False, state = 'readonly')
-        theme_box.bind("<<ComboboxSelected>>", testing)
+        theme_box.bind("<<ComboboxSelected>>", set_theme)
         theme_box.set('cburnett')
-        for v in os.listdir('resources/themes/'):
-            Utils._set_theme(v)
         
         time_input.insert(0, str(BASE_TIME))
         inc_input.insert(0, str(INCREMENT))
@@ -94,7 +115,8 @@ class Chess:
         
         RIGHT = tk.RIGHT
         TOP = tk.TOP
-         
+        
+        pack(light_toggle)
         pack(white_lbl)
         pack(black_lbl, RIGHT)
         pack(time_label)
@@ -108,25 +130,24 @@ class Chess:
         pack(canvas, TOP)
         pack(settings_frame, TOP, expand = True, fill = tk.BOTH)
         
-        m = Utils._Variables.MAIN_BG.value
+        m = colors().widget_color
         
         sv_ttk.set_theme('dark')
         style = ttk.Style(self.root)
         style.theme_use('sun-valley-dark')
-        style.configure('TCheckbutton', font = ("Segoe UI", 15))
-        style.configure('TEntry',       font = ("Segoe UI", 15))
-        style.configure('TLabel',       font = ("Segoe UI", 15))
-        style.configure('TCombobox',    font = ("Segoe UI", 15))
-        style.map('TCombobox', selectbackground = [('hover', m), ('focus', m), ('active', m), ('selected', m), ('pressed', m), ('disabled focus', m)])
+        style.configure('.', bg = colors().main_bg, fg = colors().text_fill)
+        style.map('TCombobox', selectbackground = [('hover', m), ('focus', m), ('active', m), ('selected', m), ('pressed', m), ('disabled focus', m), ('!focus', m)])
         
         self.get            = lambda y = 0, x = 0, tuple = 'empty': Utils._get(self.rows, y, x, tuple)
         self.any_selected   = lambda: self.selected_position != 0
         self.update         = self.canvas.update
         self.delete         = self.canvas.delete
+        self.is_piece       = lambda x = 0, y = 0, obj = 0: is_piece(self.rows, x, y, obj)
+        self.is_empty       = lambda x = 0, y = 0, obj = 0: is_empty(self.rows, x, y, obj)
         
         self.root.title('Chess')
         self.root.resizable(False, False)
-        self.root.configure(bg = Utils._Variables.MAIN_BG.value, padx = 20)
+        self.root.configure(bg = colors().main_bg, padx = 20)
         
         self.reset_images()
         
@@ -134,7 +155,7 @@ class Chess:
             for column in range(0, 8):
                 if (column + row * 8 + row) % 2 == 0:
                     (x, y) = proportion(column, row)
-                    self.canvas.create_rectangle(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill = Utils._Variables.FRONT_COLOR.value, outline = '')
+                    self.canvas.create_rectangle(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill = colors().front_color, outline = '')
             
         self.canvas.tag_raise('piece')
         
@@ -172,7 +193,7 @@ class Chess:
         
         for row in self.rows:
             for square in row:
-                if type(square) is Piece:
+                if self.is_piece(obj = square):
                     square.set_image()
 
     def start_game(self):
@@ -229,8 +250,8 @@ class Chess:
             text = f'{winner} by {method}'
             symbol = '♔-♚'
         
-        self.canvas.create_text(proportion(4, 3), text = text, font = ('Segoe UI', 54), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
-        self.canvas.create_text(proportion(4, 5), text = symbol, font = ('Segoe UI', 100), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
+        self.canvas.create_text(proportion(4, 3), text = text, font = ('Default', 54), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
+        self.canvas.create_text(proportion(4, 5), text = symbol, font = ('Default', 100), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
         
     def click(self, event):
         if not self.playing:
@@ -267,7 +288,7 @@ class Chess:
         square_sprite = selected_square.sprite
         clicked_square: Piece = get(tuple = new_pos)
                 
-        if type(clicked_square) is Piece:
+        if is_piece(obj = clicked_square):
             self.move_counter = 0
             self.delete(clicked_square.sprite)
             
@@ -350,9 +371,8 @@ class Chess:
             return
         black = (self.turn == 'black')
         clicked_square = self.get(tuple = pos)
-        if type(clicked_square) is Piece:
+        if self.is_piece(obj = clicked_square):
             if clicked_square.black == black or DEBUG:
-                
                 moves = clicked_square.get_moves(pos)
                 clicked_square.select(pos)
                 self.draw_moves(moves)
@@ -363,6 +383,8 @@ class Chess:
                 self.selected_position = pos 
             else:
                 self.deselect()
+        else:
+            self.deselect()
                 
     def deselect(self):
         
@@ -411,8 +433,8 @@ class Chess:
                 
             if len(self.available_moves) != 0:
                 if element_in_list(self.mouse_position, self.available_moves):
-                    is_piece = type(self.get(tuple = self.mouse_position)) is Piece
-                    file_name = f"highlight-{'t' if is_piece else 'c'}"
+                    piece = self.is_piece(*self.mouse_position)
+                    file_name = f"highlight-{'t' if piece else 'c'}"
                     self.create_img(self.mouse_position, self.images[file_name], ('hover', 'on-start', 'on-click'))
            
     def switch_turn(self):
@@ -493,7 +515,7 @@ class Chess:
                                 
         for row in rows:
             for square in row:
-                if type(square) is int:
+                if self.is_empty(obj = square):
                     continue
                 if square.black:
                     if len(square.get_moves((row.index(square), rows.index(row)))) > 0:
@@ -502,7 +524,7 @@ class Chess:
              
         for row in rows:
             for square in row:
-                if type(square) is int:
+                if self.is_empty(obj = square):
                     continue
                 if not square.black:
                     if len(square.get_moves((row.index(square), rows.index(row)))) > 0:
@@ -529,7 +551,7 @@ class Chess:
         
         for row in self.rows:
             for square in row:
-                if type(square) is int:
+                if not is_piece(obj = square):
                     string += '0'
                 else:
                     string += square.piece_id()
@@ -554,7 +576,7 @@ class Chess:
         scores = [0, 0]
         for row in self.rows:
             for square in row:
-                if type(square) is int:
+                if self.is_empty(obj = square):
                     continue
                 
                 num = 0
@@ -584,7 +606,7 @@ class Chess:
         self.available_moves = moves
         for move in moves:
             string = 'move-circle'
-            if type(self.get(move[1], move[0])) is Piece:
+            if self.is_piece(*move):
                 string = 'move-take'
             self.create_img(move[:2], self.images[string], ('moves', 'on-click', 'on-start'))
             
@@ -599,7 +621,7 @@ class Chess:
         
         for row in self.rows:
             for square in row:
-                if not type(square) is int:
+                if not self.is_empty(obj = square):
                     self.canvas.moveto(square.sprite, x = (flip_num(row.index(square), True)) * SPACE_SIZE, y = (7-self.rows.index(row)) * SPACE_SIZE)
                     self.canvas.itemconfigure(square.sprite, state = 'normal')
                     self.update()
@@ -667,7 +689,7 @@ class Piece:
             while straight_get(testing_y, testing_x) != 'NA':
                             
                 piece: Piece = straight_get(testing_y, testing_x)
-                if type(piece) is Piece:
+                if is_piece(obj = piece):
                     if piece.black != self.black:
                         add_move(testing_x, testing_y)
                     break
@@ -678,13 +700,14 @@ class Piece:
         
         def test_square(x, y, only_piece = False, only_empty = False) -> bool:
                     square = straight_get(y, x)
-                    if type(square) is not str and (type(square) is int or square.black != self.black):
+                    is_valid = lambda obj: is_piece(rows = 0, obj = obj) or is_empty(rows = 0, obj = obj)
+                    if is_valid(square) and (type(square) is int or square.black != self.black):
                         if only_piece and not only_empty:
-                            if type(square) is Piece:
+                            if is_piece(obj = square):
                                 add_move(x, y)
                                 return True
                         elif only_empty and not only_piece:
-                            if type(square) is not Piece:
+                            if is_empty(obj = square):
                                 add_move(x, y)
                                 return True
                         else:
@@ -703,27 +726,29 @@ class Piece:
                 
                 possible_moves = Utils._moves_dict['king']
                 
+                empty = lambda y, x: is_empty(straight_rows, x, y)
+                
                 right_moved, left_moved = [True, True]
                 
                 left_rook = straight_get(y, 7)
-                if type(left_rook) is not int:
+                if is_piece(obj = left_rook):
                     if not left_rook.moved:
                         left_moved = False
                         
                 right_rook = straight_get(y, 0)
-                if type(right_rook) is not int:
+                if is_piece(obj = right_rook):
                     if not right_rook.moved:
                         right_moved = False
                         
                 if not self.moved:
                     
                     if not left_moved:
-                        if straight_get(y, x + 1) == 0 and straight_get(y, x + 2) == 0:
+                        if empty(y, x + 1) and empty(y, x + 2):
                             if move_test(*pos) and move_test(x + 1, y):
                                 add_move(x + 2, y)
                                 
                     if not right_moved:
-                        if straight_get(y, x - 1) == 0 and straight_get(y, x - 2) == 0 and straight_get(y, x - 3) == 0:
+                        if empty(y, x - 1) and empty(y, x - 2) and empty(y, x - 3):
                             if move_test(*pos) and move_test(x - 1, y) and move_test(x - 2, y):
                                 add_move(x - 2, y)
                                 
@@ -746,7 +771,7 @@ class Piece:
                     found_passant = element_in_list(tup, en_passants)
                     if found_passant:
                         elem = element_in_list(tup, en_passants, ret = True)
-                        if type(straight_get(elem[1], elem[0])) is int:
+                        if is_empty(straight_rows, *elem):
                             add_move(*tuple(elem))
                 
                 pass_test(x - multiplier, y + multiplier)
@@ -790,4 +815,16 @@ class Piece:
             else:
                 return f"r{'b' if self.black else 'w'}{int(self.moved)} "
     
+def is_empty(rows = 0, x = 1, y = 1, obj = 1):
+    if obj == 1:
+        return Utils._get(rows, y, x) == 0
+    else:
+        return obj == 0
+
+def is_piece(rows = 0, x = 1, y = 1, obj = 1):
+    if obj == 1:
+        return type(Utils._get(rows, y, x)) is Piece
+    else:
+        return type(obj) is Piece
+
 Chess()
