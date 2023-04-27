@@ -21,6 +21,7 @@ flip_list = Utils._flip_list
 flip_num = Utils._flip_num
 def colors() -> Utils._Color_Scheme:
     return Utils._get_scheme()
+_func = Utils._func
 
 class Chess:  
     def __init__(self) -> None:
@@ -48,7 +49,7 @@ class Chess:
         Utils.SPACE_SIZE = int(self.root.winfo_screenheight() / 10)
         SPACE_SIZE = Utils.SPACE_SIZE
         
-        pack = lambda widget, p_side = tk.LEFT, pad_x = 0, expand = False, fill = tk.NONE: widget.pack(side = p_side, padx = pad_x, expand = expand, fill = fill)
+        pack = lambda widget, p_side = tk.LEFT, pad_x = 0, expand = False, fill = tk.NONE, pady = 0: widget.pack(side = p_side, padx = pad_x, expand = expand, fill = fill, pady = pady)
         
         time_string, inc_string = self.input_strings = [[tk.StringVar(), '1200'], [tk.StringVar(), '500']]
         time_string[0] .trace('w', lambda *args: check_text(time_string))
@@ -70,11 +71,11 @@ class Chess:
             m = colors().widget_color
             style = ttk.Style()
             if Utils._dark:
-                light_toggle.configure(text = 'Dark Mode')
+                light_toggle.configure(text = 'Light Mode')
                 sv_ttk.use_dark_theme()
                 style.theme_use('sun-valley-dark')
             else:
-                light_toggle.configure(text = 'Light Mode')
+                light_toggle.configure(text = 'Dark Mode')
                 sv_ttk.use_light_theme()
                 style.theme_use('sun-valley-light')
             
@@ -83,7 +84,7 @@ class Chess:
             m = colors().text_fill
             style.map('TCombobox', selectforeground = [('hover', m), ('focus', m), ('active', m), ('pressed', m), ('!focus', m)])
                 
-        def set_theme(*args):
+        def set_theme():
             Utils._set_theme(theme_box.get())
             self.reset_images()
             canvas.focus()
@@ -92,8 +93,10 @@ class Chess:
         font = ('Default', 22)
         
         canvas = self.canvas             = tk.Canvas(self.root, bg = colors().background, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8)
-        settings_frame = self.options    = ttk.Frame(self.root, width = SPACE_SIZE * 8)
-        label_frame = self.labels        = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        settings_frame                   = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        theme_settings                   = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        seperator                        = ttk.Separator(self.root, orient = 'horizontal')
+        label_frame                      = ttk.Frame(self.root, width = SPACE_SIZE * 8)
         
         white_lbl = self.white_label     = ttk.Label (label_frame, text = 'W: \tPoints: ', font = font)
         black_lbl = self.black_label     = ttk.Label (label_frame, text = 'B: \tPoints: \t', font = font)
@@ -103,10 +106,11 @@ class Chess:
         time_label = ttk.Label           (settings_frame, text = 'Time: ')
         inc_label = ttk.Label            (settings_frame, text = ' + ')
         f_toggle = ttk.Checkbutton       (settings_frame, text = 'Flipping', command = toggle_flip, variable = b_var)
-        theme_box = ttk.Combobox         (settings_frame, values = os.listdir('resources/themes/'), state = 'readonly')
-        light_toggle = ttk.Checkbutton   (self.options, text = 'Dark Mode', style = 'Switch.TCheckbutton', command = switch_mode)
+        theme_box = ttk.Combobox         (theme_settings, values = os.listdir('resources/themes/'), state = 'readonly')
+        light_toggle = ttk.Checkbutton   (theme_settings, text = 'Light Mode', style = 'Switch.TCheckbutton', command = switch_mode)
+        theme_lbl = ttk.Label            (theme_settings, text = 'Icon Type: ')
         
-        theme_box.bind("<<ComboboxSelected>>", set_theme)
+        theme_box.bind("<<ComboboxSelected>>", _func(set_theme))
         theme_box.set('cburnett')
         
         time_input.insert(0, str(BASE_TIME))
@@ -116,26 +120,28 @@ class Chess:
         RIGHT = tk.RIGHT
         TOP = tk.TOP
         
-        pack(light_toggle)
+        pack(light_toggle, RIGHT)
         pack(white_lbl)
         pack(black_lbl, RIGHT)
         pack(time_label)
         pack(time_input)
         pack(inc_label)
         pack(inc_input)
+        pack(theme_lbl)
         pack(theme_box)
         pack(f_toggle, RIGHT, 10)
         pack(draw_btn, RIGHT, 20)
         pack(label_frame, TOP, expand = True, fill = tk.BOTH)
         pack(canvas, TOP)
-        pack(settings_frame, TOP, expand = True, fill = tk.BOTH)
+        pack(settings_frame, TOP, expand = True, fill = tk.BOTH, pady = 5)
+        pack(theme_settings, tk.BOTTOM, expand = True, fill = tk.BOTH, pady = 5)
+        pack(seperator, tk.BOTTOM, fill = tk.BOTH)
         
         m = colors().widget_color
         
         sv_ttk.set_theme('dark')
         style = ttk.Style(self.root)
         style.theme_use('sun-valley-dark')
-        style.configure('.', bg = colors().main_bg, fg = colors().text_fill)
         style.map('TCombobox', selectbackground = [('hover', m), ('focus', m), ('active', m), ('selected', m), ('pressed', m), ('disabled focus', m), ('!focus', m)])
         
         self.get            = lambda y = 0, x = 0, tuple = 'empty': Utils._get(self.rows, y, x, tuple)
@@ -162,10 +168,10 @@ class Chess:
         def change(b):
             self.mouse_out = b
             
-        self.canvas.bind('<Enter>',     lambda *args: change(False))
-        self.canvas.bind('<Leave>',     lambda *args: change(True))
-        self.root.bind('<Motion>',    self.motion)
-        self.root.bind('<Button-1>',  self.click)
+        self.canvas.bind('<Enter>',     _func(change, False))
+        self.canvas.bind('<Leave>',     _func(change, True))
+        self.root.bind('<Motion>',      self.motion)
+        self.root.bind('<Button-1>',    _func(self.click))
 
         self.root.mainloop()
         
@@ -252,8 +258,8 @@ class Chess:
         
         self.canvas.create_text(proportion(4, 3), text = text, font = ('Default', 54), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
         self.canvas.create_text(proportion(4, 5), text = symbol, font = ('Default', 100), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
-        
-    def click(self, event):
+    
+    def click(self):
         if not self.playing:
             if not self.mouse_out:
                 self.start_game()
@@ -294,42 +300,40 @@ class Chess:
             
         num = Utils._flip_num
         
-        match selected_square.type:
-            case 'king':
+        if selected_square.type == 'king':
+            if selected_square.black:
+                self.black_king = new_pos
+            else:
+                self.white_king = new_pos
+            
+            row = num(0 if selected_square.black else 7)
+                
+            multi = -1 if self.flipped else 1
+            
+            if new_pos[0] - select_position[0] == (2 * multi):
+                
+                canvas.move(get(row, num(7)).sprite, SPACE_SIZE * -2 * multi, 0)
+                assign((num(5), row), get(row, num(7)))
+                assign((num(7), row))
+                
+            elif new_pos[0] - select_position[0] == (-2 * multi):
+                
+                canvas.move(get(row, num(0)).sprite, SPACE_SIZE * 3 * multi, 0)
+                assign((num(3), row), get(row, num(0)))
+                assign((num(0), row))
+                
+        elif selected_square.type == 'pawn':
+            self.move_counter = 0
+            
+            if abs(select_position[1] - new_pos[1]) == 2:
+                object = (select_position[0], int((select_position[1] + new_pos[1]) / 2), new_pos[0], new_pos[1])
                 if selected_square.black:
-                    self.black_king = new_pos
+                    self.black_passants.append(object)
                 else:
-                    self.white_king = new_pos
-                
-                row = num(0 if selected_square.black else 7)
+                    self.white_passants.append(object)
                     
-                multi = -1 if self.flipped else 1
-                
-                if new_pos[0] - select_position[0] == (2 * multi):
-                    
-                    canvas.move(get(row, num(7)).sprite, SPACE_SIZE * -2 * multi, 0)
-                    assign((num(5), row), get(row, num(7)))
-                    assign((num(7), row))
-                    
-                elif new_pos[0] - select_position[0] == (-2 * multi):
-                    
-                    canvas.move(get(row, num(0)).sprite, SPACE_SIZE * 3 * multi, 0)
-                    assign((num(3), row), get(row, num(0)))
-                    assign((num(0), row))
-                        
-            case 'pawn':
-                
-                self.move_counter = 0
-                
-                if abs(select_position[1] - new_pos[1]) == 2:
-                    object = (select_position[0], int((select_position[1] + new_pos[1]) / 2), new_pos[0], new_pos[1])
-                    if selected_square.black:
-                        self.black_passants.append(object)
-                    else:
-                        self.white_passants.append(object)
-                        
-                if new_pos[1] == (num(7) if selected_square.black else num(0)):
-                    self.show_promote_menu(new_pos, selected_square.black)
+            if new_pos[1] == (num(7) if selected_square.black else num(0)):
+                self.show_promote_menu(new_pos, selected_square.black)
                     
         move = element_in_list(new_pos, self.available_moves, ret = True)
             
@@ -408,10 +412,10 @@ class Chess:
         bishop      = self.create_img((pos[0] + 2, pos[1]), self.images['bishop'][black], tag = 'pro')
         knight      = self.create_img((pos[0] + 3, pos[1]), self.images['knight'][black], tag = 'pro')
         
-        self.canvas.tag_bind(queen  , '<Button-1>', lambda e: select('queen' ))
-        self.canvas.tag_bind(rook   , '<Button-1>', lambda e: select( 'rook' ))
-        self.canvas.tag_bind(bishop , '<Button-1>', lambda e: select('bishop'))
-        self.canvas.tag_bind(knight , '<Button-1>', lambda e: select('knight'))
+        self.canvas.tag_bind(queen  , '<Button-1>', _func(select, 'queen'))
+        self.canvas.tag_bind(rook   , '<Button-1>', _func(select, 'rook'))
+        self.canvas.tag_bind(bishop , '<Button-1>', _func(select, 'bishop'))
+        self.canvas.tag_bind(knight , '<Button-1>', _func(select, 'knight'))
         
         self.can_click = False
         
