@@ -224,7 +224,7 @@ class Chess:
         self.turn                   = 'white'
         self.available_moves        = []
         
-        piece_names = ['lrook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rrook']
+        piece_names = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook']
         self.rows = [
                      [Piece((index, 0), self, True, piece_names[index]) for index in range(8)], 
                      [Piece((index, 1), self, True) for index in range(8)], 
@@ -456,10 +456,10 @@ class Chess:
 
     def assign_element(self, place, element = 0):
         self.rows[place[1]][place[0]] = element
-        
+    
     def pause_timer(self):
         self.paused = True
-        
+    
     def tick_timer(self):
         if self.paused:
             self.root.after(1000, self.tick_timer)
@@ -489,7 +489,7 @@ class Chess:
         self.white_label.configure(text = f'W: {white}\tPoints: {white_s}')
         self.black_label.configure(text = f'B: {black}\tPoints: {black_s}')
         self.root.after(1000, self.tick_timer)
-        
+    
     def test_draw(self):
         
         self.move_counter += 1
@@ -505,7 +505,7 @@ class Chess:
             
         if self.move_counter == 100:
             self.lose_game(method = '\nFifty Move Rule')
-        
+    
     def test_check(self) -> tuple:
         self.delete('check')
         rows = self.rows
@@ -661,7 +661,7 @@ class Piece:
         self.moved = False
         self.start_position = (position[0], position[1])
         self.get = lambda y = 0, x = 0, tuple = 'empty': Utils._get(game.rows, y, x, tuple)
-        self.sprite = self.game.create_img(position, self.game.images['rook' if 'rook' in self.type else self.type][self.black])
+        self.sprite = self.game.create_img(position, self.game.images[self.type][self.black])
             
     def select(self, position):
         self.game.create_img(position, self.game.images['highlight'], ('highlight', 'on-start', 'on-click'))
@@ -808,16 +808,13 @@ class Piece:
         return legal_moves
     
     def set_image(self):
-        self.game.canvas.itemconfig(self.sprite, image = self.game.images['rook' if 'rook' in self.type else self.type][self.black])
+        self.game.canvas.itemconfig(self.sprite, image = self.game.images[self.type][self.black])
     
     def piece_id(self):
-        if self.type != 'knight' and self.type not in 'lrookrrook':
-            return f"{self.type[0]}{'b' if self.black else 'w'} "
+        if self.type == 'knight':
+            return f"n{'b' if self.black else 'w'}{int(self.moved)} "   
         else:
-            if self.type == 'knight':
-                return f"n{'b' if self.black else 'w'}{int(self.moved)} "   
-            else:
-                return f"r{'b' if self.black else 'w'}{int(self.moved)} "
+            return f"{self.type[0]}{'b' if self.black else 'w'}{int(self.moved)} "
     
 def is_empty(rows = 0, x = 1, y = 1, obj = 1):
     if obj == 1:

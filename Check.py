@@ -59,7 +59,7 @@ def check_king(rows, king, black):
             square = get(rows, y, x)
     
     qb = ('queen', 'bishop')
-    qr = ('queen', 'rrook', 'lrook', 'rook')
+    qr = ('queen', 'rook')
     checks = [(1, -1, qb), (-1, 1, qb), (1, 1, qb), (-1, -1, qb), (-1, 0, qr), (1, 0, qr), (0, 1, qr), (0, -1, qr)]
     for check in checks:
         if check_moves(check[0], check[1], check[2]):

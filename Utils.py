@@ -1,11 +1,3 @@
-from enum import Enum
-from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPDF
-import fitz
-from PIL import Image, ImageTk
-import os
-import shutil
-
 SPACE_SIZE = 0
 _flipped = False
 _theme = 'cburnett'
