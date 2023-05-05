@@ -14,6 +14,9 @@ SPACE_SIZE = None #To be set after the window is created, as a fraction of the s
 BASE_TIME = 1200
 INCREMENT = 500
 DEBUG = True
+GWL_EXSTYLE = -20
+WS_EX_APPWINDOW = 0x00040000
+WS_EX_TOOLWINDOW = 0x00000080
 
 proportion = Utils._proportion
 element_in_list = Utils._element_in_list
@@ -25,8 +28,6 @@ _func = Utils._func
 
 class Chess:  
     def __init__(self) -> None:
-        global SPACE_SIZE
-        
         self.turn               = 'white'
         self.playing            = False
         self.paused             = False
@@ -47,14 +48,15 @@ class Chess:
         self.root               = tk.Tk()
         
         Utils.SPACE_SIZE = int(self.root.winfo_screenheight() / 10)
+        global SPACE_SIZE
         SPACE_SIZE = Utils.SPACE_SIZE
         
         pack = lambda widget, p_side = tk.LEFT, pad_x = 0, expand = False, fill = tk.NONE, pady = 0: widget.pack(side = p_side, padx = pad_x, expand = expand, fill = fill, pady = pady)
         
         time_string, inc_string = self.input_strings = [[tk.StringVar(), '1200'], [tk.StringVar(), '500']]
-        time_string[0] .trace('w', lambda *args: check_text(time_string))
-        inc_string[0]  .trace('w', lambda *args: check_text(inc_string))
-        b_var = tk.BooleanVar()
+        time_string[0].trace('w', lambda *args: check_text(time_string))
+        inc_string[0] .trace('w', lambda *args: check_text(inc_string))
+        flip_var = tk.BooleanVar()
         
         def check_text(test):
             if (test[0].get().isdigit() or test[0].get() == '') and not len(test[0].get()) > 6:
@@ -63,64 +65,97 @@ class Chess:
                 test[0].set(test[1])
         
         def toggle_flip():
-            self.flip_enabled = b_var.get()
+            self.flip_enabled = flip_var.get()
             
-        def switch_mode():
+        def switch_theme_color():
             Utils._dark = not Utils._dark
             self.root.configure(bg = colors().main_bg)
-            m = colors().widget_color
             style = ttk.Style()
             if Utils._dark:
-                light_toggle.configure(text = 'Light Mode')
+                dark_toggle.configure(text = 'Light Mode')
                 sv_ttk.use_dark_theme()
                 style.theme_use('sun-valley-dark')
             else:
-                light_toggle.configure(text = 'Dark Mode')
+                dark_toggle.configure(text = 'Dark Mode')
                 sv_ttk.use_light_theme()
                 style.theme_use('sun-valley-light')
             
-            style.configure('Switch.TCheckbutton', fg = colors().text_fill)
+            style.configure('Switch.TCheckbutton', font = self.font)
+            style.configure('TCheckbutton', font = self.font)
+            style.configure('Accent.TButton', font = self.font)
+            style.configure('TEntry', font = ('Times new roman', 50))
+            m = colors().widget_color
             style.map('TCombobox', selectbackground = [('hover', m), ('focus', m), ('active', m), ('pressed', m), ('!focus', m)])
             m = colors().text_fill
             style.map('TCombobox', selectforeground = [('hover', m), ('focus', m), ('active', m), ('pressed', m), ('!focus', m)])
                 
         def set_theme():
-            Utils._set_theme(theme_box.get())
+            Utils._set_theme(drop_down.get())
             self.reset_images()
             canvas.focus()
             
+        def show_credits():
+            r = self.root
+            popup = tk.Toplevel(r)
+            num = SPACE_SIZE
+            popup.overrideredirect(True)
+
+            popup.geometry(f'{num*5}x{num}' + f'+{r.winfo_x() + SPACE_SIZE}+{r.winfo_y() + SPACE_SIZE * 3}')
+            
+            ttk.Label(popup, text = 'Piece Themes: \nGeneral Theme: ', font = ('Segoe UI', int(SPACE_SIZE / 8))).place(relx = 0.04, rely = 0.5, anchor = tk.W)
+            
         draw = lambda: self.lose_game(method = '\nAgreement')
-        font = ('Default', 22)
+        self.font = font = ('Default', int(SPACE_SIZE / 15))
+        big_font = ('Default', int(SPACE_SIZE / 15) + 6)
+
+        self.root.overrideredirect(True)
+        self.root.geometry(f'{SPACE_SIZE*8 + 40}x{int(SPACE_SIZE*9.7)}+50+50')
         
-        canvas = self.canvas             = tk.Canvas(self.root, bg = colors().background, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8)
-        settings_frame                   = ttk.Frame(self.root, width = SPACE_SIZE * 8)
-        theme_settings                   = ttk.Frame(self.root, width = SPACE_SIZE * 8)
-        seperator                        = ttk.Separator(self.root, orient = 'horizontal')
-        label_frame                      = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        canvas       = tk.Canvas(self.root, bg = colors().background, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8)
+        option_frame = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        themes_frame = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        timers_frame = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        topbar_frame = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        seperator    = ttk.Separator(self.root, orient = 'horizontal')
         
-        white_lbl = self.white_label     = ttk.Label (label_frame, text = 'W: \tPoints: ', font = font)
-        black_lbl = self.black_label     = ttk.Label (label_frame, text = 'B: \tPoints: \t', font = font)
-        draw_btn = self.draw_btn         = ttk.Button(settings_frame, command = draw, text = 'Draw', style = 'Accent.TButton', state = 'disabled')
-        inc_input = self.increment_input = ttk.Entry (settings_frame, textvariable = inc_string[0], width = 7)
-        time_input = self.time_input     = ttk.Entry (settings_frame, textvariable = time_string[0], width = 7)
-        time_label = ttk.Label           (settings_frame, text = 'Time: ')
-        inc_label = ttk.Label            (settings_frame, text = ' + ')
-        f_toggle = ttk.Checkbutton       (settings_frame, text = 'Flipping', command = toggle_flip, variable = b_var)
-        theme_box = ttk.Combobox         (theme_settings, values = os.listdir('resources/themes/'), state = 'readonly')
-        light_toggle = ttk.Checkbutton   (theme_settings, text = 'Light Mode', style = 'Switch.TCheckbutton', command = switch_mode)
-        theme_lbl = ttk.Label            (theme_settings, text = 'Icon Type: ')
+        white_lbl   = ttk.Label (timers_frame, text = 'W: \tPoints: ', font = big_font)
+        black_lbl   = ttk.Label (timers_frame, text = 'B: \tPoints: \t', font = big_font)
+        time_label  = ttk.Label (topbar_frame, text = 'Time: ', font = font)
+        inc_label   = ttk.Label (topbar_frame, text = ' + ', font = font)
+        theme_lbl   = ttk.Label (themes_frame, text = 'Icon Type: ', font = font)
+        draw_btn    = ttk.Button(topbar_frame, text = 'Draw', style = 'Accent.TButton', state = 'disabled', command = draw)
+        credits     = ttk.Button(themes_frame, text = 'Credits', style = 'Accent.TButton', command = show_credits)
+        close_btn   = ttk.Button(topbar_frame, text = 'X', style = 'Accent.TButton', command = self.root.destroy, width = 2)
+        inc_input   = ttk.Entry (topbar_frame, textvariable = inc_string[0], width = 7, font = ('Times new roman', 30))
+        time_input  = ttk.Entry (topbar_frame, textvariable = time_string[0], width = 7, font = font)
+        f_toggle    = ttk.Checkbutton(themes_frame, text = 'Flipping', variable = flip_var, command = toggle_flip)
+        dark_toggle = ttk.Checkbutton(themes_frame, text = 'Light Mode', style = 'Switch.TCheckbutton', command = switch_theme_color)
+        drop_down   = ttk.Combobox   (themes_frame, values = os.listdir('resources/themes/'), state = 'readonly')
         
-        theme_box.bind("<<ComboboxSelected>>", _func(set_theme))
-        theme_box.set('cburnett')
+        self.white_label        = white_lbl
+        self.black_label        = black_lbl
+        self.draw_btn           = draw_btn
+        self.increment_input    = inc_input
+        self.time_input         = time_input
+        self.canvas             = canvas
+        self.bar_frame          = topbar_frame
+        
+        switch_theme_color()
+        switch_theme_color()
+        
+        drop_down.bind("<<ComboboxSelected>>", _func(set_theme))
+        drop_down.set('cburnett')
         
         time_input.insert(0, str(BASE_TIME))
         inc_input.insert(0, str(INCREMENT))
-        b_var.set(True)
+        flip_var.set(True)
         
         RIGHT = tk.RIGHT
         TOP = tk.TOP
         
-        pack(light_toggle, RIGHT)
+        pack(timers_frame, tk.BOTTOM, expand = True, fill = tk.BOTH)
+        pack(topbar_frame, TOP, expand = True, fill = tk.BOTH)
+        pack(dark_toggle, RIGHT)
         pack(white_lbl)
         pack(black_lbl, RIGHT)
         pack(time_label)
@@ -128,14 +163,16 @@ class Chess:
         pack(inc_label)
         pack(inc_input)
         pack(theme_lbl)
-        pack(theme_box)
+        pack(drop_down)
         pack(f_toggle, RIGHT, 10)
+        pack(close_btn, RIGHT)
         pack(draw_btn, RIGHT, 20)
-        pack(label_frame, TOP, expand = True, fill = tk.BOTH)
         pack(canvas, TOP)
-        pack(settings_frame, TOP, expand = True, fill = tk.BOTH, pady = 5)
-        pack(theme_settings, tk.BOTTOM, expand = True, fill = tk.BOTH, pady = 5)
+        #pack(option_frame, TOP, expand = True, fill = tk.BOTH, pady = 5)
         pack(seperator, tk.BOTTOM, fill = tk.BOTH)
+        pack(themes_frame, tk.BOTTOM, expand = True, fill = tk.BOTH, pady = 5)
+        
+        credits.place(relx = 0.5, rely = 0.5, anchor = tk.CENTER)
         
         m = colors().widget_color
         
@@ -167,12 +204,39 @@ class Chess:
         
         def change(b):
             self.mouse_out = b
+        
+        #These two from: https://stackoverflow.com/questions/23836000/can-i-change-the-title-bar-in-tkinter
+        def get_pos(event):
+            window_x = self.root.winfo_x()
+            window_y = self.root.winfo_y()
+            click_x = event.x_root
+            click_y = event.y_root
+
+            self.relative_x = window_x - click_x
+            self.relative_y = window_y - click_y
+            
+        def move_window(event):
+            self.root.geometry('+{0}+{1}'.format(event.x_root + self.relative_x, event.y_root + self.relative_y))
+            
+        def set_appwindow(root):
+            #Code taken from https://stackoverflow.com/questions/30786337/tkinter-windows-how-to-view-window-in-windows-task-bar-which-has-no-title-bar
+            #Necessary for better taskbar, full of windows jargon and complicated stuff I don't understand
+            hwnd = windll.user32.GetParent(root.winfo_id())
+            style = windll.user32.GetWindowLongPtrW(hwnd, GWL_EXSTYLE)
+            style = style & ~WS_EX_TOOLWINDOW
+            style = style | WS_EX_APPWINDOW
+            windll.user32.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style)
+            root.withdraw()
+            root.after(10, root.deiconify)
             
         self.canvas.bind('<Enter>',     _func(change, False))
         self.canvas.bind('<Leave>',     _func(change, True))
         self.root.bind('<Motion>',      self.motion)
         self.root.bind('<Button-1>',    _func(self.click))
+        self.bar_frame.bind('<B1-Motion>',  move_window)
+        self.bar_frame.bind('<Button-1>',   get_pos)
 
+        self.root.after(10, set_appwindow, self.root)
         self.root.mainloop()
         
     def reset_images(self):
@@ -429,17 +493,17 @@ class Chess:
                 self.flip()
                 
     def motion(self, event):
-            self.delete('hover')
-            mouse_x = floor(event.x / SPACE_SIZE)
-            mouse_y = floor(event.y / SPACE_SIZE)
-                
-            self.mouse_position = (mouse_x, mouse_y)
-                
-            if len(self.available_moves) != 0:
-                if element_in_list(self.mouse_position, self.available_moves):
-                    piece = self.is_piece(*self.mouse_position)
-                    file_name = f"highlight-{'t' if piece else 'c'}"
-                    self.create_img(self.mouse_position, self.images[file_name], ('hover', 'on-start', 'on-click'))
+        self.delete('hover')
+        mouse_x = floor(event.x / SPACE_SIZE)
+        mouse_y = floor(event.y / SPACE_SIZE)
+            
+        self.mouse_position = (mouse_x, mouse_y)
+            
+        if len(self.available_moves) != 0:
+            if element_in_list(self.mouse_position, self.available_moves):
+                piece = self.is_piece(*self.mouse_position)
+                file_name = f"highlight-{'t' if piece else 'c'}"
+                self.create_img(self.mouse_position, self.images[file_name], ('hover', 'on-start', 'on-click'))
            
     def switch_turn(self):
         
@@ -612,7 +676,7 @@ class Chess:
             string = 'move-circle'
             if self.is_piece(*move):
                 string = 'move-take'
-            self.create_img(move[:2], self.images[string], ('moves', 'on-click', 'on-start'))
+            self.create_img(move[:2], self.images[string], ('moves', 'on-click', 'on-start'), False)
             
     def flip(self):
         
