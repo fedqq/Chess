@@ -1,0 +1,2 @@
+The different versions of the chess pieces come from: https://github.com/lichess-org/lila/tree/master/public/piece
+The general theme comes from https://github.com/rdbende/Sun-Valley-ttk-theme

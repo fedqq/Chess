@@ -45,7 +45,7 @@ class _TestPiece:
     
 #Returns a lambda that calls function arg with parameters in args, and ignores the event argument provided by the tkinter handler
 def _func(function, *args):
-    return lambda b: function(*args)
+    return lambda *a: function(*args)
 
 def _get(rows, yp = 0, xp = 0, tuple = 'empty'):
     if tuple != 'empty':
