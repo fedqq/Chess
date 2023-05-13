@@ -1,12 +1,14 @@
 import tkinter as tk
-from tkinter import ttk
 import Utils
-from Check import test_move
+import Check
+import sv_ttk
+import os
+from tkinter import ttk
+from CTkColorPicker import AskColor
+from colour import Color
 from PIL import Image, ImageTk
 from math import floor
-import sv_ttk
 from ctypes import windll
-import os
 
 windll.shcore.SetProcessDpiAwareness(1)
 
@@ -21,7 +23,7 @@ flip_list = Utils._flip_list
 flip_num = Utils._flip_num
 def colors() -> Utils._Color_Scheme:
     return Utils._get_scheme()
-_func = Utils._func
+func = Utils._func
 
 class Chess:  
     def __init__(self) -> None:
@@ -32,12 +34,13 @@ class Chess:
         self.promo_menu_showing = False
         self.settings_showing   = False
         self.flip_enabled       = True
-        self.mouse_out          = True
+        self.mouse_out          = False
         self.can_click          = True
         self.white_passants     = []
         self.black_passants     = []
         self.available_moves    = []
         self.move_counter       = 0
+        self.options            = None
         self.rows               = [[[0] * 8] * 8]
         self.selected_position  = (0, 0)
         self.past_ids           = {}
@@ -51,44 +54,81 @@ class Chess:
         
         pack = lambda widget, p_side = tk.LEFT, pad_x = 0, expand = False, fill = tk.NONE, pad_y = 0: widget.pack(side = p_side, padx = pad_x, expand = expand, fill = fill, pady = pad_y)
         
-            
         draw = lambda: self.lose_game(method = '\nAgreement')
-        self.font = font = ('Default', int(SPACE_SIZE / 15))
-        big_font = ('Default', int(SPACE_SIZE / 15) + 6)
+        self.font = font = ('Default', int(SPACE_SIZE / 9))
+        big_font = ('Default', int(SPACE_SIZE / 9) + 6)
+        
+        #https://stackoverflow.com/questions/44099594/how-to-make-a-tkinter-canvas-rectangle-with-rounded-corners
+        def round_rectangle(x1, y1, x2, y2, fill, radius=25, **kwargs):
+        
+            points = [x1+radius, y1,
+                    x1+radius, y1,
+                    x2-radius, y1,
+                    x2-radius, y1,
+                    x2, y1,
+                    x2, y1+radius,
+                    x2, y1+radius,
+                    x2, y2-radius,
+                    x2, y2-radius,
+                    x2, y2,
+                    x2-radius, y2,
+                    x2-radius, y2,
+                    x1+radius, y2,
+                    x1+radius, y2,
+                    x1, y2,
+                    x1, y2-radius,
+                    x1, y2-radius,
+                    x1, y1+radius,
+                    x1, y1+radius,
+                    x1, y1]
+
+            return canvas.create_polygon(points, **kwargs, smooth=True, fill = fill, outline = '', tag = 'rect')
+        
+        def start():
+            btn.destroy()
+            canvas.delete('rect')
+            lbl.destroy()
+            self.start_game()
 
         self.root.overrideredirect(True)
         self.root.geometry(f'{SPACE_SIZE*8 + 40}x{int(SPACE_SIZE*9)}+50+50')
         
-        canvas       = tk.Canvas(self.root, bg = colors().background, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8)
-        timers_frame = ttk.Frame(self.root, width = SPACE_SIZE * 8)
-        bar_frame    = ttk.Frame(self.root, width = SPACE_SIZE * 8, style = 'TBar.TFrame')
-        white_lbl    = ttk.Label(timers_frame, text = 'W: \tPoints: ', font = big_font)
-        black_lbl    = ttk.Label(timers_frame, text = 'B: \tPoints: \t', font = big_font)
-        app_label    = ttk.Label(bar_frame, text = 'Chess By Federico', font = ('Segoe UI', 20), background = colors().widget_color)
-        options_btn  = ttk.Button(bar_frame, text = '⚙', style = 'Accent.TButton', command = self.show_settings, width = 3)
-        draw_btn     = ttk.Button(bar_frame, text = 'Draw', style = 'Accent.TButton', state = 'disabled', command = draw, width = 8)
-        close_btn    = ttk.Button(bar_frame, text = 'X', style = 'Accent.TButton', command = self.root.destroy, width = 2)
+        canvas           = tk.Canvas(self.root, bg = colors().canvas_bg, width = SPACE_SIZE * 8, height = SPACE_SIZE * 8)
+        timers_frame     = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        bar_frame        = ttk.Frame(self.root, width = SPACE_SIZE * 8)
+        white_lbl        = ttk.Label(timers_frame, text = 'W: \tPoints: ', font = big_font)
+        black_lbl        = ttk.Label(timers_frame, text = 'B: \tPoints: \t', font = big_font)
+        app_label        = ttk.Label(bar_frame, text = 'Chess', font = ('Typewriter', 20, 'italic'), background = colors().window_bg)
+        options_btn      = ttk.Button(bar_frame, text = '⚙', style = 'Accent.TButton', command = self.show_settings, width = 3)
+        draw_btn         = ttk.Button(bar_frame, text = 'Draw', style = 'Accent.TButton', state = 'disabled', command = draw, width = 8)
+        close_btn        = ttk.Button(bar_frame, text = 'X', style = 'Accent.TButton', command = self.root.destroy, width = 3)
         
-        self.white_label        = white_lbl
-        self.black_label        = black_lbl
-        self.app_label          = app_label
-        self.draw_btn           = draw_btn
-        self.canvas             = canvas
-        self.bar_frame          = bar_frame
+        lbl = ttk.Label(canvas, text = 'Chess', font = ('Segoe UI', int(SPACE_SIZE / 9) + 15))
+        round_rectangle(SPACE_SIZE * 2, SPACE_SIZE * 2, SPACE_SIZE * 6, SPACE_SIZE * 6, fill = colors().window_bg)
+        btn = ttk.Button(canvas, text = 'Start Game', style = 'Huge.Accent.TButton', command = start)
         
-        RIGHT = tk.RIGHT
-        TOP = tk.TOP
-        BOTTOM = tk.BOTTOM
+        lbl.place(relx = 0.5, rely = 0.4, anchor = tk.CENTER)
+        btn.place(relx = 0.5, rely = 0.6, anchor = tk.CENTER)
         
-        pack(timers_frame, BOTTOM, expand = True, fill = tk.BOTH)
-        pack(bar_frame, TOP, expand = True, fill = tk.BOTH)
+        self.white_label = white_lbl
+        self.black_label = black_lbl
+        self.app_label   = app_label
+        self.draw_btn    = draw_btn
+        self.canvas      = canvas
+        self.bar_frame   = bar_frame
+        self.options_btn = options_btn
+        
+        from tkinter import BOTTOM, TOP, RIGHT, LEFT, BOTH, Y
+        
+        pack(timers_frame, BOTTOM, expand = True, fill = BOTH)
+        pack(bar_frame, TOP, expand = True, fill = BOTH)
         pack(white_lbl)
         pack(black_lbl, RIGHT)
-        pack(close_btn, RIGHT, 10, fill = tk.Y, pad_y = 15)
-        pack(options_btn, RIGHT, 10, fill = tk.Y, pad_y = 15)
-        pack(draw_btn, RIGHT, 10, fill = tk.Y, pad_y = 15)
+        pack(close_btn, RIGHT, 10, fill = Y, pad_y = 15)
+        pack(options_btn, RIGHT, 10, fill = Y, pad_y = 15)
+        pack(draw_btn, RIGHT, 10, fill = Y, pad_y = 15)
         pack(canvas, TOP)
-        pack(app_label, tk.LEFT, pad_x = 20)
+        pack(app_label, LEFT, pad_x = 20)
         
         self.get            = lambda y = 0, x = 0, tuple = 'empty': Utils._get(self.rows, y, x, tuple)
         self.any_selected   = lambda: self.selected_position != 0
@@ -99,7 +139,7 @@ class Chess:
         
         self.root.title('Chess')
         self.root.resizable(False, False)
-        self.root.configure(bg = colors().main_bg, padx = 20)
+        self.root.configure(bg = colors().window_bg, padx = 20)
         
         self.init_theme()
         
@@ -109,12 +149,10 @@ class Chess:
             for column in range(0, 8):
                 if (column + row * 8 + row) % 2 == 0:
                     (x, y) = proportion(column, row)
-                    self.canvas.create_rectangle(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill = colors().front_color, outline = '')
+                    self.canvas.create_rectangle(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill = colors().canvas_fg, outline = '', tag = 'fg')
             
         self.canvas.tag_raise('piece')
-        
-        def change(b):
-            self.mouse_out = b
+        canvas.tag_raise('rect')
         
         #These two from: https://stackoverflow.com/questions/23836000/can-i-change-the-title-bar-in-tkinter
         def get_pos(event):
@@ -127,6 +165,8 @@ class Chess:
             self.relative_y = window_y - click_y
             
         def move_window(event):
+            if self.options is not None:
+                self.options.destroy()
             self.root.geometry(f'+{event.x_root + self.relative_x}+{event.y_root + self.relative_y}')
             
         #Code taken from https://stackoverflow.com/questions/30786337/tkinter-windows-how-to-view-window-in-windows-task-bar-which-has-no-title-bar
@@ -143,10 +183,8 @@ class Chess:
             root.withdraw()
             root.after(10, root.deiconify)
             
-        self.canvas.bind('<Enter>',     _func(change, False))
-        self.canvas.bind('<Leave>',     _func(change, True))
         self.root.bind('<Motion>',      self.motion)
-        self.root.bind('<Button-1>',    _func(self.click))
+        self.canvas.bind('<Button-1>',    func(self.click))
         self.bar_frame.bind('<B1-Motion>',  move_window)
         self.bar_frame.bind('<Button-1>',   get_pos)
 
@@ -160,32 +198,38 @@ class Chess:
             else:
                 test[0].set(test[1])
         
-        self.root.configure(bg = colors().main_bg)
+        self.root.configure(bg = colors().window_bg)
         style = ttk.Style()
         sv_ttk.use_dark_theme()
         style.theme_use('sun-valley-dark')
         
         self.time_string, self.inc_string = self.input_strings = [[tk.StringVar(), '1200'], [tk.StringVar(), '500']]
-        self.time_string[0].trace('w', _func(check_text, self.time_string))
-        self.inc_string[0] .trace('w', _func(check_text, self.inc_string))
+        self.time_string[0].trace('w', func(check_text, self.time_string))
+        self.inc_string[0] .trace('w', func(check_text, self.inc_string))
         
         style.configure('Switch.TCheckbutton', font = self.font)
         style.configure('TCheckbutton', font = self.font)
         style.configure('Accent.TButton', font = self.font)
-        style.configure('TBar.TFrame', background = colors().widget_color)
+        style.configure('Huge.Accent.TButton', font = ('Segoe UI', int(SPACE_SIZE / 9) + 10))
+        style.configure('TFrame', background = colors().window_bg)
         style.configure('TLabel', font = self.font)
         style.configure('Switch.TCheckbutton.Label', font = self.font)
-        m = colors().widget_color
+        m = colors().widget_bg
         style.map('TCombobox', selectbackground = [('hover', m), ('focus', m), ('active', m), ('pressed', m), ('!focus', m)])
-        m = colors().text_fill
+        m = colors().text_fg
         style.map('TCombobox', selectforeground = [('hover', m), ('focus', m), ('active', m), ('pressed', m), ('!focus', m)])
         
     def show_settings(self):
+        
+        if self.settings_showing:
+            self.options.destroy()
+            return
+        
         self.settings_showing = True
         
         def switch_theme_color():
             Utils._dark = not Utils._dark
-            self.root.configure(bg = colors().main_bg)
+            self.root.configure(bg = colors().window_bg)
             style = ttk.Style()
             if Utils._dark:
                 dark_toggle.configure(text = 'Light Mode')
@@ -196,21 +240,20 @@ class Chess:
                 sv_ttk.use_light_theme()
                 style.theme_use('sun-valley-light')
             
-            self.app_label.configure(background = colors().widget_color)
-            style.configure('TFrame', background = colors().widget_color)
+            self.app_label.configure(background = colors().window_bg)
             style.configure('TCheckbutton', font = self.font)
             style.configure('Accent.TButton', font = self.font)
-            m = colors().widget_color
+            style.configure('Huge.Accent.TButton', font = ('Segoe UI', int(SPACE_SIZE / 9) + 10))
+            self.canvas.itemconfig('rect', fill = colors().window_bg)
+            m = colors().widget_bg
             style.map('TCombobox', selectbackground = [('hover', m), ('focus', m), ('active', m), ('pressed', m), ('!focus', m)])
-            m = colors().text_fill
+            m = colors().text_fg
             style.map('TCombobox', selectforeground = [('hover', m), ('focus', m), ('active', m), ('pressed', m), ('!focus', m)])
             time_label.configure(font = self.font)
             inc_label.configure(font = self.font)
             theme_lbl.configure(font = self.font)
-            
-        def close():
-            self.settings_showing = False
-        
+            self.options.configure(background = colors().widget_bg)
+
         def set_theme():
             Utils._set_theme(drop_down.get())
             self.reset_images()
@@ -220,45 +263,93 @@ class Chess:
             self.flip_enabled = flip_var.get()
         
         def show_credits():
-            r = self.root
             import webbrowser
             webbrowser.open("credits.txt")
-            
         
-        font = ('Default', int(SPACE_SIZE / 14))
+        def destroy():
+            border.destroy()
+            self.settings_showing = False
+            
+        def get_color(bg_col = False):
+            
+            border.withdraw()
+            self.options.withdraw()
+            col = ColorPicker(initial_color = colors().canvas_bg if bg_col else colors().canvas_fg)
+            col.set_changing(bg_col, self)
+            col = col.get()
+            if Utils._dark:
+                if bg_col:
+                    Utils._dark_c.canvas_bg = col
+                else:
+                    Utils._dark_c.canvas_fg = col
+            else:
+                if bg_col:
+                    Utils._light_c.canvas_bg = col
+                else:
+                    Utils._light_c.canvas_fg = col
+            
+            update_colors()
+            border.deiconify()
+            self.options.deiconify()
+            
+        def update_colors():
+            self.canvas.configure(bg = colors().canvas_bg)
+            self.canvas.itemconfig('fg', fill = colors().canvas_fg)
+            self.canvas.update()
+            
+        def reset_colors():
+            Utils._reset_colors()
+            update_colors()
+        
+        font = ('Default', int(SPACE_SIZE / 10))
         flip_var = tk.BooleanVar()
         
-        window = tk.Toplevel(self.root)
-        window.bind('<Destroy>', _func(close))
+        col = Color(Utils._dark_c.widget_bg)
+        col.set_luminance(1 - col.get_luminance())
+        border = tk.Toplevel(self.root, background = col)
+        border.withdraw()
+        border.resizable(False, False)
+        border.overrideredirect(True)
         
-        labelframe_font = ('SunValleyBodyStrongFont', int(SPACE_SIZE / 17))
+        self.options = tk.Toplevel(self.root, background = colors().widget_bg)
+        self.options.resizable(False, False)
+        self.options.overrideredirect(True)
+        self.options.bind('<Destroy>', func(destroy))
+        self.options.update_idletasks()
+        
+        r, btn = self.root, self.options_btn
+        
+        winwidth = int(self.options.winfo_width() / 2)
+        width, height = btn.winfo_width(), btn.winfo_height()
+        x, y = btn.winfo_x(), btn.winfo_y()
+        rootx, rooty = r.winfo_x(), r.winfo_y()
+        final_x, final_y = x + rootx - winwidth - width, y + rooty + height
+        self.options.geometry(f'+{final_x}+{final_y + 5}')
+        
+        notebook = ttk.Notebook(self.options)
         
         state = 'disabled' if self.playing else 'normal'
         
-        theme_options   = ttk.LabelFrame(window, padding = 10)
+        theme_options   = ttk.Frame      (notebook, padding = 10)
         
-        themeopt_lbl    = ttk.Label(theme_options, text = 'Theme Options', font = labelframe_font, foreground = '#9e9e9e')
         dark_toggle     = ttk.Checkbutton(theme_options, text = 'Light Mode', style = 'Switch.TCheckbutton', command = switch_theme_color)
         theme_lbl       = ttk.Label      (theme_options, text = 'Icon Type: ', font = font)
         drop_down       = ttk.Combobox   (theme_options, values = os.listdir('resources/themes/'), state = 'readonly', font = font)
         
-        game_options    = ttk.LabelFrame(window, padding = 10)
+        game_options    = ttk.Frame      (notebook, padding = 10)
         
-        gameopt_lbl     = ttk.Label (game_options, text = 'Game Options', font = labelframe_font, foreground = '#9e9e9e')
-        time_label      = ttk.Label (game_options, text = 'Time:     ', font = font)
-        inc_label       = ttk.Label (game_options, text = 'Increment:', font = font)
-        inc_input       = ttk.Entry (game_options, textvariable = self.inc_string[0], width = 7, state = state)
-        time_input      = ttk.Entry (game_options, textvariable = self.time_string[0], width = 7, state = state)
+        time_label      = ttk.Label      (game_options, text = 'Time:     ', font = font)
+        inc_label       = ttk.Label      (game_options, text = 'Increment:', font = font)
+        inc_input       = ttk.Entry      (game_options, textvariable = self.inc_string[0], state = state)
+        time_input      = ttk.Entry      (game_options, textvariable = self.time_string[0], state = state)
         f_toggle        = ttk.Checkbutton(game_options, text = 'Flipping', variable = flip_var, command = toggle_flip)
-        credits         = ttk.Button(game_options, text = 'Credits', style = 'Accent.TButton', command = show_credits)
-            
-        style = ttk.Style(window)
-        style.theme_use('sun-valley-dark')
-        style.configure('TEntry.Entry.Label', font = font)     
-            
-        game_options.configure(labelwidget = gameopt_lbl)
-        theme_options.configure(labelwidget = themeopt_lbl)
-        drop_down.bind("<<ComboboxSelected>>", _func(set_theme))
+        credits         = ttk.Button     (game_options, text = 'Credits', style = 'Accent.TButton', command = show_credits)
+        
+        dark_pick       = ttk.Button     (theme_options, text = 'Dark', style = 'Accent.TButton', command = func(get_color, True))
+        light_pick      = ttk.Button     (theme_options, text = 'Light', style = 'Accent.TButton', command = func(get_color))
+        reset_color     = ttk.Button     (theme_options, text = 'Reset Colors', style = 'Accent.TButton', command = reset_colors)
+        
+        drop_down.bind("<<ComboboxSelected>>", func(set_theme))
         drop_down.set('cburnett')
         flip_var.set(True)
         time_input.insert(0, str(BASE_TIME))
@@ -267,20 +358,34 @@ class Chess:
         switch_theme_color()
         switch_theme_color()
         
-        self.increment_input    = inc_input
-        self.time_input         = time_input
+        self.increment_input = inc_input
+        self.time_input      = time_input
         
-        dark_toggle.pack()
-        theme_lbl.pack(side = tk.LEFT, pady = 10)
-        drop_down.pack(pady = 10)
-        theme_options.pack(padx = 10, pady = 10)
-        time_label.grid(column = 0, row = 0)
+        ttk.Label(self.options, text = 'Settings', font = self.font).pack(pady = 10)
+        dark_toggle.grid(column = 0, row = 0, columnspan = 2)
+        theme_lbl.grid(column = 0, row = 1, pady = 10)
+        drop_down.grid(column = 1, row = 1, pady = 10)
+        ttk.Label(theme_options, text = 'Pick Square Colors: ', font = self.font).grid(pady = 10, column = 0, row = 2)
+        reset_color.grid(column = 1, row = 2)
+        dark_pick.grid(column = 0, row = 3, pady = 10)
+        light_pick.grid(column = 1, row = 3, pady = 10)
+        
+        time_label.grid(column = 0, row = 0, padx = 10)
         inc_label.grid(column = 0, row = 1, pady = 10)
         time_input.grid(column = 1, row = 0, pady = 10)
         inc_input.grid(column = 1, row = 1)
-        game_options.pack(padx = 10, pady = 10)
         f_toggle.grid(column = 0, row = 2, pady = 10, columnspan = 2)
         credits.grid(column = 0, row = 3, columnspan = 2)
+
+        notebook.add(game_options, text = 'Game Options')
+        notebook.add(theme_options, text = 'Theme Options')
+        
+        notebook.pack(padx = 10, pady = 10, expand = True, fill = tk.BOTH)
+        
+        self.options.update_idletasks()
+        border.geometry(f'{self.options.winfo_width() + 10}x{self.options.winfo_height() + 10}+{final_x - 5}+{final_y}')
+        border.deiconify()
+        self.options.lift()
         
     def reset_images(self):
         
@@ -363,16 +468,10 @@ class Chess:
         self.canvas.create_text(proportion(4, 5), text = symbol, font = ('Default', 100), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
     
     def click(self):
-        if not self.playing:
-            if not self.mouse_out:
-                self.start_game()
-            return
+        if self.options is not None:
+            self.options.destroy()
         
-        if not self.can_click or self.settings_showing:
-            return
-        
-        if self.mouse_out:
-            self.deselect()
+        if not self.can_click:
             return
         
         self.delete('on-click')
@@ -516,10 +615,10 @@ class Chess:
         bishop      = self.create_img((pos[0] + 2, pos[1]), self.images['bishop'][black], tag = 'pro')
         knight      = self.create_img((pos[0] + 3, pos[1]), self.images['knight'][black], tag = 'pro')
         
-        self.canvas.tag_bind(queen  , '<Button-1>', _func(select, 'queen'))
-        self.canvas.tag_bind(rook   , '<Button-1>', _func(select, 'rook'))
-        self.canvas.tag_bind(bishop , '<Button-1>', _func(select, 'bishop'))
-        self.canvas.tag_bind(knight , '<Button-1>', _func(select, 'knight'))
+        self.canvas.tag_bind(queen  , '<Button-1>', func(select, 'queen'))
+        self.canvas.tag_bind(rook   , '<Button-1>', func(select, 'rook'))
+        self.canvas.tag_bind(bishop , '<Button-1>', func(select, 'bishop'))
+        self.canvas.tag_bind(knight , '<Button-1>', func(select, 'knight'))
         
         self.can_click = False
         
@@ -613,7 +712,7 @@ class Chess:
         self.delete('check')
         rows = self.rows
         
-        white_check, black_check = check = test_move(self.rows, flipped = self.flipped)
+        white_check, black_check = check = Check.test_move(self.rows, flipped = self.flipped)
         
         if check != [False, False]:
             self.create_img(self.white_king if white_check else self.black_king, self.images['check'], ('check', 'on-start'))
@@ -824,8 +923,9 @@ class Piece:
         
         def add_move(*move):
             moves.append(flip_list(move))
-            
-        move_test = lambda *n_pos: test_move(straight_rows, pos, n_pos, 'white' if not self.black else 'black', self.game.flipped)[int(self.black)] == False
+        
+        _test = lambda *n_pos: Check.test_move(straight_rows, pos, n_pos, 'white' if not self.black else 'black', self.game.flipped)
+        move_test = lambda *n_pos: not _test(*n_pos)[int(self.black)]
         
         match self.type:
             
@@ -918,7 +1018,7 @@ class Piece:
             return f"n{'b' if self.black else 'w'}{int(self.moved)} "   
         else:
             return f"{self.type[0]}{'b' if self.black else 'w'}{int(self.moved)} "
-    
+
 def is_empty(rows = 0, x = 1, y = 1, obj = 1):
     if obj == 1:
         return Utils._get(rows, y, x) == 0
@@ -931,4 +1031,19 @@ def is_piece(rows = 0, x = 1, y = 1, obj = 1):
     else:
         return type(obj) is Piece
 
-Chess()
+class ColorPicker(AskColor):
+    def set_changing(self, bg: bool, game):
+        self.bg = bg
+        self.game = game
+        
+    def on_mouse_drag(self, event):
+        super().on_mouse_drag(event)
+        c = Color()
+        c.set_rgb([col / 255 for col in self.rgb_color])
+        c = c.get_hex()
+        if self.bg:
+            self.game.canvas.configure(background = c)
+        else:
+            self.game.canvas.itemconfig('fg', fill = c)
+
+game = Chess()

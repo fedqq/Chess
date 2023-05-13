@@ -9,10 +9,18 @@ def _set_theme(theme = 'cburnett'):
     
 class _Color_Scheme:
     def __init__(self, *args) -> None:
-        self.main_bg, self.background, self.front_color, self.widget_color, self.text_fill = args
+        self.window_bg, self.canvas_bg, self.canvas_fg, self.widget_bg, self.text_fg = args
         
 _dark_c = _Color_Scheme('#1C1C1C', '#686868', '#E6F4F4', '#2A2A2A', '#FAFAFA')
 _light_c = _Color_Scheme('#FAFAFA', '#686868', '#E6F4F4', '#F9F9F9', '#1C1C1C')
+
+def _reset_colors():
+    global _dark_c
+    global _light_c
+    
+    _dark_c = _Color_Scheme('#1C1C1C', '#686868', '#E6F4F4', '#2A2A2A', '#FAFAFA')
+    _light_c = _Color_Scheme('#FAFAFA', '#686868', '#E6F4F4', '#F9F9F9', '#1C1C1C')
+    
     
 def _get_scheme():
     if _dark:

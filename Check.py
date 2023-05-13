@@ -23,7 +23,7 @@ def test_move(original_rows, start_move = 0, end_move = 0, test = 'all', flipped
             for square_index, square in enumerate(row):
                 if type(square) is not int and square.type != 'int':
                     if square.type == 'king' and not square.black:
-                        ret[0] = check_king(rows, (square_index, row_index), black = False)
+                        ret[0] = _check_king(rows, (square_index, row_index), black = False)
                         break
                         
     if test != 'white':
@@ -31,12 +31,12 @@ def test_move(original_rows, start_move = 0, end_move = 0, test = 'all', flipped
             for square_index, square in enumerate(row):
                 if type(square) is not int and square.type != 'int':
                     if square.type == 'king' and square.black:
-                        ret[1] = check_king(rows, (square_index, row_index), black = True)
+                        ret[1] = _check_king(rows, (square_index, row_index), black = True)
                         break
          
     return ret
 
-def check_king(rows, king, black):
+def _check_king(rows, king, black):
     
     def check_moves(x_inc, y_inc, types):
         
