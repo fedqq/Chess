@@ -13,6 +13,7 @@ from ctypes import windll
 windll.shcore.SetProcessDpiAwareness(1)
 
 SPACE_SIZE = None #To be set after the window is created, as a fraction of the screen height
+                  #So that the game is always proportioned to the screen
 BASE_TIME = 1200
 INCREMENT = 500
 DEBUG = False
@@ -58,32 +59,6 @@ class Chess:
         self.font = font = ('Default', int(SPACE_SIZE / 9))
         big_font = ('Default', int(SPACE_SIZE / 9) + 6)
         
-        #https://stackoverflow.com/questions/44099594/how-to-make-a-tkinter-canvas-rectangle-with-rounded-corners
-        def round_rectangle(x1, y1, x2, y2, fill, radius=25, **kwargs):
-        
-            points = [x1+radius, y1,
-                    x1+radius, y1,
-                    x2-radius, y1,
-                    x2-radius, y1,
-                    x2, y1,
-                    x2, y1+radius,
-                    x2, y1+radius,
-                    x2, y2-radius,
-                    x2, y2-radius,
-                    x2, y2,
-                    x2-radius, y2,
-                    x2-radius, y2,
-                    x1+radius, y2,
-                    x1+radius, y2,
-                    x1, y2,
-                    x1, y2-radius,
-                    x1, y2-radius,
-                    x1, y1+radius,
-                    x1, y1+radius,
-                    x1, y1]
-
-            return canvas.create_polygon(points, **kwargs, smooth=True, fill = fill, outline = '', tag = 'rect')
-        
         def start():
             btn.destroy()
             canvas.delete('rect')
@@ -103,13 +78,6 @@ class Chess:
         draw_btn         = ttk.Button(bar_frame, text = 'Draw', style = 'Accent.TButton', state = 'disabled', command = draw, width = 8)
         close_btn        = ttk.Button(bar_frame, text = 'X', style = 'Accent.TButton', command = self.root.destroy, width = 3)
         
-        lbl = ttk.Label(canvas, text = 'Chess', font = ('Segoe UI', int(SPACE_SIZE / 9) + 15))
-        round_rectangle(SPACE_SIZE * 2, SPACE_SIZE * 2, SPACE_SIZE * 6, SPACE_SIZE * 6, fill = colors().window_bg)
-        btn = ttk.Button(canvas, text = 'Start Game', style = 'Huge.Accent.TButton', command = start)
-        
-        lbl.place(relx = 0.5, rely = 0.4, anchor = tk.CENTER)
-        btn.place(relx = 0.5, rely = 0.6, anchor = tk.CENTER)
-        
         self.white_label = white_lbl
         self.black_label = black_lbl
         self.app_label   = app_label
@@ -117,6 +85,13 @@ class Chess:
         self.canvas      = canvas
         self.bar_frame   = bar_frame
         self.options_btn = options_btn
+        
+        lbl = ttk.Label(canvas, text = 'Chess', font = ('Segoe UI', int(SPACE_SIZE / 9) + 15))
+        self.round_rectangle(SPACE_SIZE * 2, SPACE_SIZE * 2, SPACE_SIZE * 6, SPACE_SIZE * 6, fill = colors().window_bg, outline = '', tag = 'rect')
+        btn = ttk.Button(canvas, text = 'Start Game', style = 'Huge.Accent.TButton', command = start)
+        
+        lbl.place(relx = 0.5, rely = 0.4, anchor = tk.CENTER)
+        btn.place(relx = 0.5, rely = 0.6, anchor = tk.CENTER)
         
         from tkinter import BOTTOM, TOP, RIGHT, LEFT, BOTH, Y
         
@@ -163,7 +138,7 @@ class Chess:
 
             self.relative_x = window_x - click_x
             self.relative_y = window_y - click_y
-            
+        
         def move_window(event):
             if self.options is not None:
                 self.options.destroy()
@@ -260,6 +235,9 @@ class Chess:
             self.canvas.focus()
         
         def toggle_flip():
+            if self.flipped:
+                self.canvas.delete('last')
+                self.flip()
             self.flip_enabled = flip_var.get()
         
         def show_credits():
@@ -351,7 +329,7 @@ class Chess:
         
         drop_down.bind("<<ComboboxSelected>>", func(set_theme))
         drop_down.set('cburnett')
-        flip_var.set(True)
+        flip_var.set(self.flip_enabled)
         time_input.insert(0, str(BASE_TIME))
         inc_input.insert(0, str(INCREMENT))
         
@@ -407,7 +385,6 @@ class Chess:
         add_piece('move-take', 'move-circle', 'highlight-c', 'highlight-t', 'check', 'last', 'highlight', False)
         
         self.images['promote']  = img('promote', 'other', (SPACE_SIZE * 4, SPACE_SIZE))
-        self.images['end-menu'] = img('promote', 'other', (SPACE_SIZE * 8, SPACE_SIZE * 8))
         
         for row in self.rows:
             for square in row:
@@ -448,6 +425,32 @@ class Chess:
         
         self.past_ids = {self.get_position_id(): 1}
    
+    #https://stackoverflow.com/questions/44099594/how-to-make-a-tkinter-canvas-rectangle-with-rounded-corners
+    def round_rectangle(self, x1, y1, x2, y2, radius=25, **kwargs):
+    
+        points = [x1+radius, y1,
+                x1+radius, y1,
+                x2-radius, y1,
+                x2-radius, y1,
+                x2, y1,
+                x2, y1+radius,
+                x2, y1+radius,
+                x2, y2-radius,
+                x2, y2-radius,
+                x2, y2,
+                x2-radius, y2,
+                x2-radius, y2,
+                x1+radius, y2,
+                x1+radius, y2,
+                x1, y2,
+                x1, y2-radius,
+                x1, y2-radius,
+                x1, y1+radius,
+                x1, y1+radius,
+                x1, y1]
+
+        return self.canvas.create_polygon(points, **kwargs, smooth=True)
+        
     def lose_game(self, winner = 'Draw', method = 'Checkmate'):
         self.draw_btn.configure(state = 'disabled')
         
@@ -455,7 +458,7 @@ class Chess:
             return
         self.playing = False
         
-        self.create_img((0, 0), self.images['end-menu'], 'title', False)
+        self.round_rectangle(SPACE_SIZE*2, SPACE_SIZE*2, SPACE_SIZE*6, SPACE_SIZE*6, fill = colors().window_bg, tag = 'rect')
         
         if winner != 'Draw':
             text = f'{winner} Won\nBy {method}'
@@ -463,9 +466,14 @@ class Chess:
         else:
             text = f'{winner} by {method}'
             symbol = '♔-♚'
+            
+        def restart():
+            btn.destroy()
         
-        self.canvas.create_text(proportion(4, 3), text = text, font = ('Default', 54), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
-        self.canvas.create_text(proportion(4, 5), text = symbol, font = ('Default', 100), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
+        self.canvas.create_text(proportion(4, 3), text = text, font = ('Default', int(SPACE_SIZE / 3)), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
+        self.canvas.create_text(proportion(4, 5), text = symbol, font = ('Default', int(SPACE_SIZE / 2)), fill = 'white', tag = ('title', 'on-start'), justify = tk.CENTER)
+        btn = ttk.Button(self.canvas, style = 'Huge.Accent.TButton', text = 'Restart', command = restart)
+        btn.place(relx = 0.5, rely = 0.5, anchor = tk.CENTER)
     
     def click(self):
         if self.options is not None:
@@ -478,11 +486,8 @@ class Chess:
          
         mouse_position = self.mouse_position
         
-        if self.any_selected():
-            if element_in_list(mouse_position, self.available_moves):
-                self.move_to(mouse_position)
-            else:
-                self.select_position(mouse_position)
+        if self.any_selected() and element_in_list(mouse_position, self.available_moves):
+            self.move_to(mouse_position)
         else:
             self.select_position(mouse_position)
             
@@ -600,10 +605,10 @@ class Chess:
         self.available_moves = []
         
     def create_img(self, position, image, tag = ('piece', 'on-start'), raise_pieces = True):
-            ret = self.canvas.create_image(proportion(position), image = image, anchor = tk.NW, tag = tag)
-            if raise_pieces:
-                self.canvas.tag_raise('piece')
-            return ret
+        ret = self.canvas.create_image(proportion(position), image = image, anchor = tk.NW, tag = tag)
+        if raise_pieces:
+            self.canvas.tag_raise('piece')
+        return ret
         
     def show_promote_menu(self, position, black = False):
         self.promo_menu_showing = True
@@ -615,13 +620,6 @@ class Chess:
         bishop      = self.create_img((pos[0] + 2, pos[1]), self.images['bishop'][black], tag = 'pro')
         knight      = self.create_img((pos[0] + 3, pos[1]), self.images['knight'][black], tag = 'pro')
         
-        self.canvas.tag_bind(queen  , '<Button-1>', func(select, 'queen'))
-        self.canvas.tag_bind(rook   , '<Button-1>', func(select, 'rook'))
-        self.canvas.tag_bind(bishop , '<Button-1>', func(select, 'bishop'))
-        self.canvas.tag_bind(knight , '<Button-1>', func(select, 'knight'))
-        
-        self.can_click = False
-        
         def select(type):
             self.can_click = True
             self.delete(self.get(tuple = position).sprite, 'pro')
@@ -630,6 +628,13 @@ class Chess:
             self.promo_menu_showing = False
             if self.flip_enabled:
                 self.flip()
+        
+        self.canvas.tag_bind(queen  , '<Button-1>', func(select, 'queen'))
+        self.canvas.tag_bind(rook   , '<Button-1>', func(select, 'rook'))
+        self.canvas.tag_bind(bishop , '<Button-1>', func(select, 'bishop'))
+        self.canvas.tag_bind(knight , '<Button-1>', func(select, 'knight'))
+        
+        self.can_click = False
                 
     def motion(self, event):
         self.delete('hover')
@@ -924,7 +929,7 @@ class Piece:
         def add_move(*move):
             moves.append(flip_list(move))
         
-        _test = lambda *n_pos: Check.test_move(straight_rows, pos, n_pos, 'white' if not self.black else 'black', self.game.flipped)
+        _test = lambda *n_pos: Check.test_move(straight_rows, pos, n_pos, 'white' if not self.black else 'black', False)
         move_test = lambda *n_pos: not _test(*n_pos)[int(self.black)]
         
         match self.type:
