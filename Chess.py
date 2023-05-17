@@ -165,7 +165,33 @@ class Chess:
 
         self.root.after(10, set_appwindow, self.root)
         self.root.mainloop()
-        
+    
+    #https://stackoverflow.com/questions/44099594/how-to-make-a-tkinter-canvas-rectangle-with-rounded-corners
+    def round_rectangle(self, x1, y1, x2, y2, radius=25, **kwargs):
+    
+        points = [x1+radius, y1,
+                x1+radius, y1,
+                x2-radius, y1,
+                x2-radius, y1,
+                x2, y1,
+                x2, y1+radius,
+                x2, y1+radius,
+                x2, y2-radius,
+                x2, y2-radius,
+                x2, y2,
+                x2-radius, y2,
+                x2-radius, y2,
+                x1+radius, y2,
+                x1+radius, y2,
+                x1, y2,
+                x1, y2-radius,
+                x1, y2-radius,
+                x1, y1+radius,
+                x1, y1+radius,
+                x1, y1]
+
+        return self.canvas.create_polygon(points, **kwargs, smooth=True)
+    
     def init_theme(self):
         def check_text(test):
             if (test[0].get().isdigit() or test[0].get() == '') and not len(test[0].get()) > 6:
@@ -425,32 +451,6 @@ class Chess:
         
         self.past_ids = {self.get_position_id(): 1}
    
-    #https://stackoverflow.com/questions/44099594/how-to-make-a-tkinter-canvas-rectangle-with-rounded-corners
-    def round_rectangle(self, x1, y1, x2, y2, radius=25, **kwargs):
-    
-        points = [x1+radius, y1,
-                x1+radius, y1,
-                x2-radius, y1,
-                x2-radius, y1,
-                x2, y1,
-                x2, y1+radius,
-                x2, y1+radius,
-                x2, y2-radius,
-                x2, y2-radius,
-                x2, y2,
-                x2-radius, y2,
-                x2-radius, y2,
-                x1+radius, y2,
-                x1+radius, y2,
-                x1, y2,
-                x1, y2-radius,
-                x1, y2-radius,
-                x1, y1+radius,
-                x1, y1+radius,
-                x1, y1]
-
-        return self.canvas.create_polygon(points, **kwargs, smooth=True)
-        
     def lose_game(self, winner = 'Draw', method = 'Checkmate'):
         self.draw_btn.configure(state = 'disabled')
         
@@ -490,7 +490,7 @@ class Chess:
             self.move_to(mouse_position)
         else:
             self.select_position(mouse_position)
-            
+    
     def move_to(self, new_pos):
         select_position = self.selected_position 
         assign = self.assign_element
@@ -820,6 +820,7 @@ class Chess:
             if self.is_piece(*move):
                 string = 'move-take'
             self.create_img(move[:2], self.images[string], ('moves', 'on-click', 'on-start'), False)
+            self.canvas.tag_raise('moves')
             
     def flip(self):
         
