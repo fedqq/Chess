@@ -86,8 +86,8 @@ class Chess:
         self.bar_frame   = bar_frame
         self.options_btn = options_btn
         
-        lbl = ttk.Label(canvas, text = 'Chess', font = ('Segoe UI', int(SPACE_SIZE / 9) + 15))
-        self.round_rectangle(SPACE_SIZE * 2, SPACE_SIZE * 2, SPACE_SIZE * 6, SPACE_SIZE * 6, fill = colors().window_bg, outline = '', tag = 'rect')
+        lbl = ttk.Label(canvas, text = 'Chess', font = ('Segoe UI', int(SPACE_SIZE / 9) + 35))
+        self.round_rectangle(SPACE_SIZE * 1.5, SPACE_SIZE * 1.5, SPACE_SIZE * 6.5, SPACE_SIZE * 6.5, fill = colors().window_bg, outline = '', tag = 'rect')
         btn = ttk.Button(canvas, text = 'Start Game', style = 'Huge.Accent.TButton', command = start)
         
         lbl.place(relx = 0.5, rely = 0.4, anchor = tk.CENTER)
